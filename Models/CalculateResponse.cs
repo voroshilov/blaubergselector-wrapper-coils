@@ -45,6 +45,10 @@ namespace blaubergselector_wrapper_coils.Models
         // Line 19
         public string OutletManifold { get; set; }
 
+        /// <summary>
+        /// Maps from the DLL's 1-based output array (doc lines 1-19 = arr[1]-arr[19]).
+        /// Falls back to 0-based if array is small (in case DLL uses 0-based).
+        /// </summary>
         public static CalculateResponse FromOutputArray(string[] output, int returnCode)
         {
             var resp = new CalculateResponse { ReturnCode = returnCode };
@@ -52,25 +56,29 @@ namespace blaubergselector_wrapper_coils.Models
             if (output == null || output.Length == 0)
                 return resp;
 
-            resp.TotalCapacity = Get(output, 0);
-            resp.SensibleCapacity = Get(output, 1);
-            resp.AirFlow = Get(output, 2);
-            resp.FrontalVelocity = Get(output, 3);
-            resp.InletAirTempDryBulb = Get(output, 4);
-            resp.OutletAirTempDryBulb = Get(output, 5);
-            resp.OutletAirTempWetBulb = Get(output, 6);
-            resp.OutletRelativeHumidity = Get(output, 7);
-            resp.AirPressureDrop = Get(output, 8);
-            resp.FluidFlow = Get(output, 9);
-            resp.FluidParam1 = Get(output, 10);
-            resp.FluidParam2 = Get(output, 11);
-            resp.TotalPressureDropFluidSide = Get(output, 12);
-            resp.FluidVelocityLiquidPhase = Get(output, 13);
-            resp.FluidVelocityGasPhase = Get(output, 14);
-            resp.InletAirTempWetBulb = Get(output, 15);
-            resp.InletAirRelativeHumidity = Get(output, 16);
-            resp.InletManifold = Get(output, 17);
-            resp.OutletManifold = Get(output, 18);
+            // Detect whether DLL output is 0-based or 1-based:
+            // if arr[0] is empty/null and arr.Length > 19, assume 1-based
+            int offset = (output.Length > 19 && string.IsNullOrEmpty(output[0])) ? 1 : 0;
+
+            resp.TotalCapacity = Get(output, offset + 0);
+            resp.SensibleCapacity = Get(output, offset + 1);
+            resp.AirFlow = Get(output, offset + 2);
+            resp.FrontalVelocity = Get(output, offset + 3);
+            resp.InletAirTempDryBulb = Get(output, offset + 4);
+            resp.OutletAirTempDryBulb = Get(output, offset + 5);
+            resp.OutletAirTempWetBulb = Get(output, offset + 6);
+            resp.OutletRelativeHumidity = Get(output, offset + 7);
+            resp.AirPressureDrop = Get(output, offset + 8);
+            resp.FluidFlow = Get(output, offset + 9);
+            resp.FluidParam1 = Get(output, offset + 10);
+            resp.FluidParam2 = Get(output, offset + 11);
+            resp.TotalPressureDropFluidSide = Get(output, offset + 12);
+            resp.FluidVelocityLiquidPhase = Get(output, offset + 13);
+            resp.FluidVelocityGasPhase = Get(output, offset + 14);
+            resp.InletAirTempWetBulb = Get(output, offset + 15);
+            resp.InletAirRelativeHumidity = Get(output, offset + 16);
+            resp.InletManifold = Get(output, offset + 17);
+            resp.OutletManifold = Get(output, offset + 18);
 
             return resp;
         }

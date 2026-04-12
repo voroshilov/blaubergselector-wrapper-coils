@@ -99,45 +99,48 @@ namespace blaubergselector_wrapper_coils.Models
         // Pos 38: number of manifold couples
         public string ManifoldCouples { get; set; } = "";
 
+        /// <summary>
+        /// Maps to the DLL's 1-based input array (doc positions 1-50 = arr[1]-arr[50]).
+        /// </summary>
         public string[] ToInputArray()
         {
-            var arr = new string[50];
+            var arr = new string[51]; // index 0 unused, positions 1-50
             for (int i = 0; i < arr.Length; i++)
                 arr[i] = "";
 
-            arr[0] = CalculationModality.ToString();
-            arr[1] = Geometry ?? "";
-            arr[2] = TubeMaterial ?? "";
-            arr[3] = TubeThickness ?? "";
-            arr[4] = FinMaterial ?? "";
-            arr[5] = FinThickness ?? "";
-            arr[6] = CoilLength ?? "";
-            arr[7] = CoilHeight ?? "";
-            arr[8] = FinPitch ?? "";
-            arr[9] = NumberOfRows ?? "";
-            arr[10] = NumberOfCircuits ?? "";
-            arr[11] = NumberOfSkippedTubes ?? "0";
-            arr[12] = InletManifold ?? "";
-            arr[13] = OutletManifold ?? "";
-            arr[14] = TotalCapacity ?? "";
-            arr[15] = InletAirTempDryBulb ?? "";
-            arr[16] = InletAirTempWetBulb ?? "";
-            arr[17] = InletAirRelativeHumidity ?? "";
-            arr[18] = OutletAirTempDryBulb ?? "";
-            arr[19] = AirFlow ?? "";
-            arr[20] = Altitude ?? "0";
-            arr[21] = FluidTypology.ToString();
-            arr[22] = FluidName ?? "";
-            arr[23] = AirDensity ?? "E";
-            arr[24] = FoulingFactorAirSide ?? "";
-            arr[25] = FoulingFactorFluidSide ?? "";
-            arr[27] = SecurityFactor ?? "";
-            arr[29] = FluidParam1 ?? "";
-            arr[30] = FluidParam2 ?? "";
-            arr[31] = FluidParam3 ?? "";
-            arr[32] = FluidParam4 ?? "E";
-            arr[36] = ManifoldMaterialId ?? "-1";
-            arr[37] = ManifoldCouples ?? "";
+            arr[1]  = CalculationModality.ToString();
+            arr[2]  = Geometry ?? "";
+            arr[3]  = TubeMaterial ?? "";
+            arr[4]  = TubeThickness ?? "";
+            arr[5]  = FinMaterial ?? "";
+            arr[6]  = FinThickness ?? "";
+            arr[7]  = CoilLength ?? "";
+            arr[8]  = CoilHeight ?? "";
+            arr[9]  = FinPitch ?? "";
+            arr[10] = NumberOfRows ?? "";
+            arr[11] = NumberOfCircuits ?? "";
+            arr[12] = NumberOfSkippedTubes ?? "0";
+            arr[13] = InletManifold ?? "";
+            arr[14] = OutletManifold ?? "";
+            arr[15] = TotalCapacity ?? "";
+            arr[16] = InletAirTempDryBulb ?? "";
+            arr[17] = InletAirTempWetBulb ?? "";
+            arr[18] = InletAirRelativeHumidity ?? "";
+            arr[19] = OutletAirTempDryBulb ?? "";
+            arr[20] = AirFlow ?? "";
+            arr[21] = Altitude ?? "0";
+            arr[22] = FluidTypology.ToString();
+            arr[23] = FluidName ?? "";
+            arr[24] = AirDensity ?? "E";
+            arr[25] = FoulingFactorAirSide ?? "";
+            arr[26] = FoulingFactorFluidSide ?? "";
+            arr[28] = SecurityFactor ?? "";
+            arr[30] = FluidParam1 ?? "";
+            arr[31] = FluidParam2 ?? "";
+            arr[32] = FluidParam3 ?? "";
+            arr[33] = FluidParam4 ?? "E";
+            arr[37] = ManifoldMaterialId ?? "-1";
+            arr[38] = ManifoldCouples ?? "";
 
             return arr;
         }
