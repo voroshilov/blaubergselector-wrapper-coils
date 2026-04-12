@@ -180,6 +180,21 @@ namespace blaubergselector_wrapper_coils.Services
             return string.Join("\n", lines);
         }
 
+        public static string ListGeometries()
+        {
+            if (!_initialized || _dll == null) return "DLL not initialized";
+            try
+            {
+                var dllType = _dll.GetType();
+                var geoMethods = dllType.GetMethods().Where(m => m.Name == "GeometriesList" && m.GetParameters().Length == 1).First();
+                var enumType = geoMethods.GetParameters()[0].ParameterType;
+                var enumVal = Enum.ToObject(enumType, 1); // calcHeating
+                var result = geoMethods.Invoke(_dll, new[] { enumVal }) as List<string>;
+                return string.Join("\n", result ?? new List<string>());
+            }
+            catch (Exception ex) { return $"Error: {ex.Message}"; }
+        }
+
         public static (int returnCode, string[] output, string diagnostics) CalculateFromArray(string[] input)
         {
             if (!_initialized)
@@ -189,27 +204,31 @@ namespace blaubergselector_wrapper_coils.Services
 
             try
             {
-                string[] output = null;
-                int res = _dll.CalculateFromArray(input, ref output);
+                // Call via reflection to eliminate any overload resolution issues
+                var method = _dll.GetType().GetMethod("CalculateFromArray",
+                    new[] { typeof(string[]), typeof(string[]).MakeByRefType() });
+                diag += $", MethodFound={method != null}";
+
+                var args = new object[] { input, null };
+                var res = (int)method.Invoke(_dll, args);
+                var output = (string[])args[1];
+
                 diag += $", RetCode={res}, OutputNull={output == null}, OutputLength={output?.Length}";
 
-                // Check for warnings
+                // Check warnings
                 int hasWarnings = _dll.HasWarnings;
                 diag += $", HasWarnings={hasWarnings}";
                 if (hasWarnings > 0)
-                {
                     for (int i = 0; i < hasWarnings; i++)
-                    {
-                        var w = _dll.GetWarning(i);
-                        diag += $", Warning[{i}]={w}";
-                    }
-                }
+                        diag += $", Warning[{i}]={_dll.GetWarning(i)}";
 
                 return (res, output, diag);
             }
             catch (Exception ex)
             {
                 diag += $", Exception={ex.GetType().Name}: {ex.Message}";
+                if (ex.InnerException != null)
+                    diag += $" | Inner: {ex.InnerException.Message}";
                 return (-9998, null, diag);
             }
         }

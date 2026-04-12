@@ -53,6 +53,15 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { info });
         }
 
+        // GET api/coils/geometries — list all available geometries
+        [HttpGet]
+        [Route("geometries")]
+        public IHttpActionResult Geometries()
+        {
+            var list = CoilsEngine.ListGeometries();
+            return Ok(new { geometries = list });
+        }
+
         // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
         [HttpPost]
         [Route("calculate/raw")]
