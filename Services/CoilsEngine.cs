@@ -31,6 +31,7 @@ namespace blaubergselector_wrapper_coils.Services
                 Directory.SetCurrentDirectory(rootPath);
 
                 _dll = new DllMain();
+                _dll.HideMessages = true;
 
                 if (_dll == null)
                     throw new InvalidOperationException("_dll is null before ActivateForServer");
@@ -140,19 +141,16 @@ namespace blaubergselector_wrapper_coils.Services
                 int res = _dll.CalculateFromArray(input, ref output);
                 diag += $", RetCode={res}, OutputNull={output == null}, OutputLength={output?.Length}";
 
-                // If output is still null, try with pre-allocated array
-                if (output == null)
+                // Check for warnings
+                int hasWarnings = _dll.HasWarnings;
+                diag += $", HasWarnings={hasWarnings}";
+                if (hasWarnings > 0)
                 {
-                    diag += " | Retrying with pre-allocated output";
-                    output = new string[50];
-                    res = _dll.CalculateFromArray(input, ref output);
-                    diag += $", RetCode2={res}, OutputNull2={output == null}, OutputLength2={output?.Length}";
-                    // Check if any element was populated
-                    int populated = 0;
-                    if (output != null)
-                        for (int i = 0; i < output.Length; i++)
-                            if (!string.IsNullOrEmpty(output[i])) populated++;
-                    diag += $", PopulatedCount={populated}";
+                    for (int i = 0; i < hasWarnings; i++)
+                    {
+                        var w = _dll.GetWarning(i);
+                        diag += $", Warning[{i}]={w}";
+                    }
                 }
 
                 return (res, output, diag);
