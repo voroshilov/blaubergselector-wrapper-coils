@@ -100,47 +100,48 @@ namespace blaubergselector_wrapper_coils.Models
         public string ManifoldCouples { get; set; } = "";
 
         /// <summary>
-        /// Maps to the DLL's 1-based input array (doc positions 1-50 = arr[1]-arr[50]).
+        /// Maps to the DLL's input array. Doc uses 1-based position labels,
+        /// but the .NET array is 0-based: doc pos N = arr[N-1].
         /// </summary>
         public string[] ToInputArray()
         {
-            var arr = new string[51]; // index 0 unused, positions 1-50
+            var arr = new string[50]; // exactly 50 elements, indices 0-49
             for (int i = 0; i < arr.Length; i++)
                 arr[i] = "";
 
-            arr[1]  = CalculationModality.ToString();
-            arr[2]  = Geometry ?? "";
-            arr[3]  = TubeMaterial ?? "";
-            arr[4]  = TubeThickness ?? "";
-            arr[5]  = FinMaterial ?? "";
-            arr[6]  = FinThickness ?? "";
-            arr[7]  = CoilLength ?? "";
-            arr[8]  = CoilHeight ?? "";
-            arr[9]  = FinPitch ?? "";
-            arr[10] = NumberOfRows ?? "";
-            arr[11] = NumberOfCircuits ?? "";
-            arr[12] = NumberOfSkippedTubes ?? "0";
-            arr[13] = InletManifold ?? "";
-            arr[14] = OutletManifold ?? "";
-            arr[15] = TotalCapacity ?? "";
-            arr[16] = InletAirTempDryBulb ?? "";
-            arr[17] = InletAirTempWetBulb ?? "";
-            arr[18] = InletAirRelativeHumidity ?? "";
-            arr[19] = OutletAirTempDryBulb ?? "";
-            arr[20] = AirFlow ?? "";
-            arr[21] = Altitude ?? "0";
-            arr[22] = FluidTypology.ToString();
-            arr[23] = FluidName ?? "";
-            arr[24] = AirDensity ?? "E";
-            arr[25] = FoulingFactorAirSide ?? "";
-            arr[26] = FoulingFactorFluidSide ?? "";
-            arr[28] = SecurityFactor ?? "";
-            arr[30] = FluidParam1 ?? "";
-            arr[31] = FluidParam2 ?? "";
-            arr[32] = FluidParam3 ?? "";
-            arr[33] = FluidParam4 ?? "E";
-            arr[37] = ManifoldMaterialId ?? "-1";
-            arr[38] = ManifoldCouples ?? "";
+            arr[0]  = CalculationModality.ToString();  // doc pos 1
+            arr[1]  = Geometry ?? "";                   // doc pos 2
+            arr[2]  = TubeMaterial ?? "";               // doc pos 3
+            arr[3]  = TubeThickness ?? "";              // doc pos 4
+            arr[4]  = FinMaterial ?? "";                 // doc pos 5
+            arr[5]  = FinThickness ?? "";               // doc pos 6
+            arr[6]  = CoilLength ?? "";                  // doc pos 7
+            arr[7]  = CoilHeight ?? "";                  // doc pos 8
+            arr[8]  = FinPitch ?? "";                    // doc pos 9
+            arr[9]  = NumberOfRows ?? "";               // doc pos 10
+            arr[10] = NumberOfCircuits ?? "";            // doc pos 11
+            arr[11] = NumberOfSkippedTubes ?? "0";      // doc pos 12
+            arr[12] = InletManifold ?? "";               // doc pos 13
+            arr[13] = OutletManifold ?? "";              // doc pos 14
+            arr[14] = TotalCapacity ?? "";               // doc pos 15
+            arr[15] = InletAirTempDryBulb ?? "";        // doc pos 16
+            arr[16] = InletAirTempWetBulb ?? "";        // doc pos 17
+            arr[17] = InletAirRelativeHumidity ?? "";   // doc pos 18
+            arr[18] = OutletAirTempDryBulb ?? "";       // doc pos 19
+            arr[19] = AirFlow ?? "";                     // doc pos 20
+            arr[20] = Altitude ?? "0";                   // doc pos 21
+            arr[21] = FluidTypology.ToString();          // doc pos 22
+            arr[22] = FluidName ?? "";                   // doc pos 23
+            arr[23] = AirDensity ?? "E";                // doc pos 24
+            arr[24] = FoulingFactorAirSide ?? "";       // doc pos 25
+            arr[25] = FoulingFactorFluidSide ?? "";     // doc pos 26
+            arr[27] = SecurityFactor ?? "";              // doc pos 28
+            arr[29] = FluidParam1 ?? "";                // doc pos 30
+            arr[30] = FluidParam2 ?? "";                // doc pos 31
+            arr[31] = FluidParam3 ?? "";                // doc pos 32
+            arr[32] = FluidParam4 ?? "E";               // doc pos 33
+            arr[36] = ManifoldMaterialId ?? "-1";       // doc pos 37
+            arr[37] = ManifoldCouples ?? "";             // doc pos 38
 
             return arr;
         }

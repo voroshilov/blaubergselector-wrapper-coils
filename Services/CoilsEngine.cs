@@ -97,10 +97,25 @@ namespace blaubergselector_wrapper_coils.Services
 
             try
             {
-                // Try with pre-allocated output array first
-                string[] output = new string[20];
+                string[] output = null;
                 int res = _dll.CalculateFromArray(input, ref output);
                 diag += $", RetCode={res}, OutputNull={output == null}, OutputLength={output?.Length}";
+
+                // If output is still null, try with pre-allocated array
+                if (output == null)
+                {
+                    diag += " | Retrying with pre-allocated output";
+                    output = new string[50];
+                    res = _dll.CalculateFromArray(input, ref output);
+                    diag += $", RetCode2={res}, OutputNull2={output == null}, OutputLength2={output?.Length}";
+                    // Check if any element was populated
+                    int populated = 0;
+                    if (output != null)
+                        for (int i = 0; i < output.Length; i++)
+                            if (!string.IsNullOrEmpty(output[i])) populated++;
+                    diag += $", PopulatedCount={populated}";
+                }
+
                 return (res, output, diag);
             }
             catch (Exception ex)
