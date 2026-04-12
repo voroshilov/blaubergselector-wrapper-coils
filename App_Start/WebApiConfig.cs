@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web.Http;
+﻿using System.Web.Http;
+using Newtonsoft.Json.Serialization;
 
 namespace blaubergselector_wrapper_coils
 {
@@ -9,6 +7,12 @@ namespace blaubergselector_wrapper_coils
     {
         public static void Register(HttpConfiguration config)
         {
+            var jsonSettings = config.Formatters.JsonFormatter.SerializerSettings;
+            jsonSettings.ContractResolver = new DefaultContractResolver
+            {
+                NamingStrategy = new SnakeCaseNamingStrategy()
+            };
+
             config.MapHttpAttributeRoutes();
 
             config.Routes.MapHttpRoute(
