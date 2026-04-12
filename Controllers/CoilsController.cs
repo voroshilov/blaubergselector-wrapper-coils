@@ -44,6 +44,15 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { info });
         }
 
+        // GET api/coils/test-db — test database access
+        [HttpGet]
+        [Route("test-db")]
+        public IHttpActionResult TestDb()
+        {
+            var info = CoilsEngine.TestDatabaseAccess();
+            return Ok(new { info });
+        }
+
         // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
         [HttpPost]
         [Route("calculate/raw")]

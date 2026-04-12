@@ -128,6 +128,58 @@ namespace blaubergselector_wrapper_coils.Services
             return string.Join("\n", lines);
         }
 
+        public static string TestDatabaseAccess()
+        {
+            if (!_initialized || _dll == null) return "DLL not initialized";
+
+            var lines = new List<string>();
+            try
+            {
+                // Use reflection to call GeometriesList with enum value 1 (calcHeating)
+                var dllType = _dll.GetType();
+
+                // Get the enum type from the method parameter
+                var geoMethod = dllType.GetMethod("GeometriesList", new[] { typeof(int).Assembly.GetType("System.Int32") });
+                if (geoMethod == null)
+                {
+                    // Find the overload that returns List<string>
+                    var geoMethods = dllType.GetMethods().Where(m => m.Name == "GeometriesList").ToArray();
+                    lines.Add($"GeometriesList overloads: {geoMethods.Length}");
+                    foreach (var gm in geoMethods)
+                    {
+                        var ps = gm.GetParameters();
+                        lines.Add($"  {gm.ReturnType.Name} ({string.Join(", ", ps.Select(p => p.ParameterType.FullName))})");
+
+                        // Use the overload with 1 parameter (returns List<string>)
+                        if (ps.Length == 1)
+                        {
+                            var enumType = ps[0].ParameterType;
+                            var enumVal = Enum.ToObject(enumType, 1); // 1 = calcHeating
+                            var result = gm.Invoke(_dll, new[] { enumVal });
+                            var list = result as System.Collections.IList;
+                            lines.Add($"  Geometries(Heating): count={list?.Count}, first={(list?.Count > 0 ? list[0] : "none")}");
+                        }
+                    }
+                }
+
+                // Test materials
+                var materials = _dll.MaterialsList();
+                lines.Add($"Materials: count={materials?.Count}, items=[{string.Join(", ", materials?.Take(5) ?? new List<string>())}]");
+
+                // Test manifolds
+                var manifolds = _dll.ManifoldsList();
+                lines.Add($"Manifolds: count={manifolds?.Count}, first={manifolds?.FirstOrDefault()}");
+            }
+            catch (Exception ex)
+            {
+                lines.Add($"Exception: {ex.GetType().Name}: {ex.Message}");
+                if (ex.InnerException != null)
+                    lines.Add($"Inner: {ex.InnerException.Message}");
+            }
+
+            return string.Join("\n", lines);
+        }
+
         public static (int returnCode, string[] output, string diagnostics) CalculateFromArray(string[] input)
         {
             if (!_initialized)
