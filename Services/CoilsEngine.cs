@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Web;
 using static Unilab.C8DllNet.Public.DllMain;
 using Unilab.C8DllNet.Public;
@@ -86,6 +87,44 @@ namespace blaubergselector_wrapper_coils.Services
                 _initialized = false;
                 _dll = null;
             }
+        }
+
+        public static string InspectDll()
+        {
+            if (_dll == null) return "DLL not created";
+
+            var type = _dll.GetType();
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(m => m.Name.Contains("Calculat"))
+                .ToList();
+
+            var lines = new List<string>();
+            lines.Add($"Type: {type.FullName}");
+            lines.Add($"Assembly: {type.Assembly.FullName}");
+            lines.Add($"Calculate* methods found: {methods.Count}");
+
+            foreach (var m in methods)
+            {
+                var pars = m.GetParameters();
+                var parStr = string.Join(", ", pars.Select(p =>
+                    $"{(p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : ""))}" +
+                    $"{(p.ParameterType.IsByRef ? p.ParameterType.GetElementType().Name : p.ParameterType.Name)} {p.Name}"));
+                lines.Add($"  {m.ReturnType.Name} {m.Name}({parStr})");
+            }
+
+            // Also list all public methods
+            var allMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            lines.Add($"All public methods ({allMethods.Length}):");
+            foreach (var m in allMethods)
+            {
+                var pars = m.GetParameters();
+                var parStr = string.Join(", ", pars.Select(p =>
+                    $"{(p.IsOut ? "out " : (p.ParameterType.IsByRef ? "ref " : ""))}" +
+                    $"{(p.ParameterType.IsByRef ? p.ParameterType.GetElementType().Name : p.ParameterType.Name)} {p.Name}"));
+                lines.Add($"  {m.ReturnType.Name} {m.Name}({parStr})");
+            }
+
+            return string.Join("\n", lines);
         }
 
         public static (int returnCode, string[] output, string diagnostics) CalculateFromArray(string[] input)

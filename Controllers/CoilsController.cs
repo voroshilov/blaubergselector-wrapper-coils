@@ -35,6 +35,15 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { result = response, rawOutput = output, rawInput = inputArray, diagnostics });
         }
 
+        // GET api/coils/inspect — inspect DLL method signatures
+        [HttpGet]
+        [Route("inspect")]
+        public IHttpActionResult Inspect()
+        {
+            var info = CoilsEngine.InspectDll();
+            return Ok(new { info });
+        }
+
         // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
         [HttpPost]
         [Route("calculate/raw")]
