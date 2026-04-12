@@ -35,43 +35,7 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(response);
         }
 
-        // GET api/coils/inspect — inspect DLL method signatures
-        [HttpGet]
-        [Route("inspect")]
-        public IHttpActionResult Inspect()
-        {
-            var info = CoilsEngine.InspectDll();
-            return Ok(new { info });
-        }
-
-        // GET api/coils/test-db — test database access
-        [HttpGet]
-        [Route("test-db")]
-        public IHttpActionResult TestDb()
-        {
-            var info = CoilsEngine.TestDatabaseAccess();
-            return Ok(new { info });
-        }
-
-        // GET api/coils/geometries — list all available geometries
-        [HttpGet]
-        [Route("geometries")]
-        public IHttpActionResult Geometries()
-        {
-            var list = CoilsEngine.ListGeometries();
-            return Ok(new { geometries = list });
-        }
-
-        // GET api/coils/brute-test — try all array configurations
-        [HttpGet]
-        [Route("brute-test")]
-        public IHttpActionResult BruteTest()
-        {
-            var info = CoilsEngine.BruteForceTest();
-            return Ok(new { info });
-        }
-
-        // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
+        // POST api/coils/calculate/raw
         [HttpPost]
         [Route("calculate/raw")]
         public IHttpActionResult CalculateRaw([FromBody] string[] input)
