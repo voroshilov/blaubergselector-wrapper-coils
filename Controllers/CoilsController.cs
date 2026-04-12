@@ -28,7 +28,7 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (returnCode != 0)
             {
                 return Content(
-                    System.Net.HttpStatusCode.UnprocessableEntity,
+                    (System.Net.HttpStatusCode)422,
                     new { error = $"Calculation failed with code {returnCode}", returnCode });
             }
 
