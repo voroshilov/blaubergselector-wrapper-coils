@@ -88,19 +88,15 @@ namespace blaubergselector_wrapper_coils.Services
             }
         }
 
-        public static string[] CalculateFromArray(string[] input)
+        public static (int returnCode, string[] output) CalculateFromArray(string[] input)
         {
             if (!_initialized)
                 throw new InvalidOperationException("CoilsEngine is not initialized");
 
             string[] output = null;
             int res = _dll.CalculateFromArray(input, ref output);
-            if (res != 0)
-            {
-                throw new Exception($"CalculateFromArray failed with code {res}");
-            }
 
-            return output;
+            return (res, output);
         }
     }
 }
