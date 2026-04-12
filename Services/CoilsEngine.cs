@@ -301,42 +301,15 @@ namespace blaubergselector_wrapper_coils.Services
             return string.Join("\n", lines);
         }
 
-        public static (int returnCode, string[] output, string diagnostics) CalculateFromArray(string[] input)
+        public static (int returnCode, string[] output) CalculateFromArray(string[] input)
         {
             if (!_initialized)
-                return (-9999, null, "CoilsEngine is not initialized");
+                throw new InvalidOperationException("CoilsEngine is not initialized");
 
-            string diag = $"InputLength={input?.Length}, Initialized={_dll.InitializationDone}";
+            string[] output = null;
+            int res = _dll.CalculateFromArray(input, ref output);
 
-            try
-            {
-                // Call via reflection to eliminate any overload resolution issues
-                var method = _dll.GetType().GetMethod("CalculateFromArray",
-                    new[] { typeof(string[]), typeof(string[]).MakeByRefType() });
-                diag += $", MethodFound={method != null}";
-
-                var args = new object[] { input, null };
-                var res = (int)method.Invoke(_dll, args);
-                var output = (string[])args[1];
-
-                diag += $", RetCode={res}, OutputNull={output == null}, OutputLength={output?.Length}";
-
-                // Check warnings
-                int hasWarnings = _dll.HasWarnings;
-                diag += $", HasWarnings={hasWarnings}";
-                if (hasWarnings > 0)
-                    for (int i = 0; i < hasWarnings; i++)
-                        diag += $", Warning[{i}]={_dll.GetWarning(i)}";
-
-                return (res, output, diag);
-            }
-            catch (Exception ex)
-            {
-                diag += $", Exception={ex.GetType().Name}: {ex.Message}";
-                if (ex.InnerException != null)
-                    diag += $" | Inner: {ex.InnerException.Message}";
-                return (-9998, null, diag);
-            }
+            return (res, output);
         }
     }
 }

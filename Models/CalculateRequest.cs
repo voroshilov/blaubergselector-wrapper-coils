@@ -100,48 +100,49 @@ namespace blaubergselector_wrapper_coils.Models
         public string ManifoldCouples { get; set; } = "";
 
         /// <summary>
-        /// Maps to the DLL's input array. Doc uses 1-based position labels,
-        /// but the .NET array is 0-based: doc pos N = arr[N-1].
+        /// Maps to the DLL's input array: exactly 50 elements, 1-based indexing.
+        /// arr[0] is unused. Doc position N = arr[N].
         /// </summary>
         public string[] ToInputArray()
         {
-            var arr = new string[50]; // exactly 50 elements, indices 0-49
+            var arr = new string[50]; // exactly 50 elements (indices 0-49)
             for (int i = 0; i < arr.Length; i++)
                 arr[i] = "";
 
-            arr[0]  = CalculationModality.ToString();  // doc pos 1
-            arr[1]  = Geometry ?? "";                   // doc pos 2
-            arr[2]  = TubeMaterial ?? "";               // doc pos 3
-            arr[3]  = TubeThickness ?? "";              // doc pos 4
-            arr[4]  = FinMaterial ?? "";                 // doc pos 5
-            arr[5]  = FinThickness ?? "";               // doc pos 6
-            arr[6]  = CoilLength ?? "";                  // doc pos 7
-            arr[7]  = CoilHeight ?? "";                  // doc pos 8
-            arr[8]  = FinPitch ?? "";                    // doc pos 9
-            arr[9]  = NumberOfRows ?? "";               // doc pos 10
-            arr[10] = NumberOfCircuits ?? "";            // doc pos 11
-            arr[11] = NumberOfSkippedTubes ?? "0";      // doc pos 12
-            arr[12] = InletManifold ?? "";               // doc pos 13
-            arr[13] = OutletManifold ?? "";              // doc pos 14
-            arr[14] = TotalCapacity ?? "";               // doc pos 15
-            arr[15] = InletAirTempDryBulb ?? "";        // doc pos 16
-            arr[16] = InletAirTempWetBulb ?? "";        // doc pos 17
-            arr[17] = InletAirRelativeHumidity ?? "";   // doc pos 18
-            arr[18] = OutletAirTempDryBulb ?? "";       // doc pos 19
-            arr[19] = AirFlow ?? "";                     // doc pos 20
-            arr[20] = Altitude ?? "0";                   // doc pos 21
-            arr[21] = FluidTypology.ToString();          // doc pos 22
-            arr[22] = FluidName ?? "";                   // doc pos 23
-            arr[23] = AirDensity ?? "E";                // doc pos 24
-            arr[24] = FoulingFactorAirSide ?? "";       // doc pos 25
-            arr[25] = FoulingFactorFluidSide ?? "";     // doc pos 26
-            arr[27] = SecurityFactor ?? "";              // doc pos 28
-            arr[29] = FluidParam1 ?? "";                // doc pos 30
-            arr[30] = FluidParam2 ?? "";                // doc pos 31
-            arr[31] = FluidParam3 ?? "";                // doc pos 32
-            arr[32] = FluidParam4 ?? "E";               // doc pos 33
-            arr[36] = ManifoldMaterialId ?? "-1";       // doc pos 37
-            arr[37] = ManifoldCouples ?? "";             // doc pos 38
+            // arr[0] intentionally left empty (unused by DLL)
+            arr[1]  = CalculationModality.ToString();  // pos 1
+            arr[2]  = Geometry ?? "";                   // pos 2
+            arr[3]  = TubeMaterial ?? "";               // pos 3
+            arr[4]  = TubeThickness ?? "";              // pos 4
+            arr[5]  = FinMaterial ?? "";                 // pos 5
+            arr[6]  = FinThickness ?? "";               // pos 6
+            arr[7]  = CoilLength ?? "";                  // pos 7
+            arr[8]  = CoilHeight ?? "";                  // pos 8
+            arr[9]  = FinPitch ?? "";                    // pos 9
+            arr[10] = NumberOfRows ?? "";               // pos 10
+            arr[11] = NumberOfCircuits ?? "";            // pos 11
+            arr[12] = NumberOfSkippedTubes ?? "0";      // pos 12
+            arr[13] = InletManifold ?? "";               // pos 13
+            arr[14] = OutletManifold ?? "";              // pos 14
+            arr[15] = TotalCapacity ?? "";               // pos 15
+            arr[16] = InletAirTempDryBulb ?? "";        // pos 16
+            arr[17] = InletAirTempWetBulb ?? "";        // pos 17
+            arr[18] = InletAirRelativeHumidity ?? "";   // pos 18
+            arr[19] = OutletAirTempDryBulb ?? "";       // pos 19
+            arr[20] = AirFlow ?? "";                     // pos 20
+            arr[21] = Altitude ?? "0";                   // pos 21
+            arr[22] = FluidTypology.ToString();          // pos 22
+            arr[23] = FluidName ?? "";                   // pos 23
+            arr[24] = AirDensity ?? "E";                // pos 24
+            arr[25] = FoulingFactorAirSide ?? "";       // pos 25
+            arr[26] = FoulingFactorFluidSide ?? "";     // pos 26
+            arr[28] = SecurityFactor ?? "";              // pos 28
+            arr[30] = FluidParam1 ?? "";                // pos 30
+            arr[31] = FluidParam2 ?? "";                // pos 31
+            arr[32] = FluidParam3 ?? "";                // pos 32
+            arr[33] = FluidParam4 ?? "E";               // pos 33
+            arr[37] = ManifoldMaterialId ?? "-1";       // pos 37
+            arr[38] = ManifoldCouples ?? "";             // pos 38
 
             return arr;
         }
