@@ -195,6 +195,112 @@ namespace blaubergselector_wrapper_coils.Services
             catch (Exception ex) { return $"Error: {ex.Message}"; }
         }
 
+        public static string BruteForceTest()
+        {
+            if (!_initialized || _dll == null) return "DLL not initialized";
+
+            var lines = new List<string>();
+
+            // Check environment
+            var rootPath = System.Configuration.ConfigurationManager.AppSettings["Coils.RootPath"];
+            var hostPath = System.Configuration.ConfigurationManager.AppSettings["UnilabTheBest.Host.Path"];
+            var autofac = System.Configuration.ConfigurationManager.AppSettings["Unilab.Autofac.Config"];
+            lines.Add($"RootPath={rootPath}, exists={Directory.Exists(rootPath)}");
+            lines.Add($"HostPath={hostPath}, exists={File.Exists(hostPath)}");
+            lines.Add($"AutofacConfig={autofac}");
+            lines.Add($"CurrentDir={Directory.GetCurrentDirectory()}");
+
+            // Check if host exe exists in root path
+            if (rootPath != null)
+            {
+                var hostInRoot = Path.Combine(rootPath, "UnilabTheBest_Host.exe");
+                lines.Add($"HostInRoot={hostInRoot}, exists={File.Exists(hostInRoot)}");
+                // List key files
+                try
+                {
+                    var files = Directory.GetFiles(rootPath, "*.exe")
+                        .Concat(Directory.GetFiles(rootPath, "*.db3"))
+                        .Select(Path.GetFileName);
+                    lines.Add($"RootFiles: {string.Join(", ", files)}");
+                }
+                catch (Exception ex) { lines.Add($"ListFiles error: {ex.Message}"); }
+            }
+
+            // Build a minimal valid input array (1-based, matching VB.NET)
+            // Try both 0-based and 1-based with sizes 40, 50, 51
+            var configs = new[] {
+                new { Name = "50el_0based", Size = 50, Offset = 0 },
+                new { Name = "50el_1based", Size = 50, Offset = 1 },
+                new { Name = "51el_1based", Size = 51, Offset = 1 },
+                new { Name = "40el_0based", Size = 40, Offset = 0 },
+                new { Name = "40el_1based", Size = 40, Offset = 1 },
+            };
+
+            var method = _dll.GetType().GetMethod("CalculateFromArray",
+                new[] { typeof(string[]), typeof(string[]).MakeByRefType() });
+
+            foreach (var cfg in configs)
+            {
+                try
+                {
+                    var arr = new string[cfg.Size];
+                    for (int i = 0; i < arr.Length; i++) arr[i] = "";
+                    int o = cfg.Offset;
+
+                    arr[0 + o] = "1";            // Calc Modality = Heating
+                    arr[1 + o] = "1916 7mm";     // Geometry
+                    arr[2 + o] = "Copper";        // Tube material
+                    arr[3 + o] = "0.35";          // Tube thickness
+                    arr[4 + o] = "Aluminum";      // Fin material
+                    arr[5 + o] = "0.12";          // Fin thickness
+                    arr[6 + o] = "1200";          // Coil length
+                    arr[7 + o] = "800";           // Coil height
+                    arr[8 + o] = "2.1";           // Fin pitch
+                    arr[9 + o] = "4";             // Rows
+                    arr[10 + o] = "20";           // Circuits
+                    arr[11 + o] = "0";            // Skipped tubes
+                    arr[12 + o] = "A";            // Inlet manifold
+                    arr[13 + o] = "A";            // Outlet manifold
+                    arr[14 + o] = "";             // Total capacity
+                    arr[15 + o] = "10";           // Inlet air temp DB
+                    arr[16 + o] = "";             // Inlet air temp WB
+                    arr[17 + o] = "80";           // Inlet air RH
+                    arr[18 + o] = "";             // Outlet air temp DB
+                    arr[19 + o] = "8000";         // Air flow
+                    arr[20 + o] = "0";            // Altitude
+                    arr[21 + o] = "1";            // Fluid typology
+                    arr[22 + o] = "WATER";        // Fluid name
+                    arr[23 + o] = "E";            // Air density
+                    if (29 + o < cfg.Size) arr[29 + o] = "80";   // Inlet fluid temp
+                    if (30 + o < cfg.Size) arr[30 + o] = "70";   // Outlet fluid temp
+                    if (31 + o < cfg.Size) arr[31 + o] = "";     // Fluid flow (empty)
+                    if (32 + o < cfg.Size) arr[32 + o] = "E";    // Must be "E"
+
+                    var args = new object[] { arr, null };
+                    var res = (int)method.Invoke(_dll, args);
+                    var output = (string[])args[1];
+
+                    var hasData = false;
+                    if (output != null)
+                        for (int i = 0; i < output.Length; i++)
+                            if (!string.IsNullOrEmpty(output[i])) { hasData = true; break; }
+
+                    lines.Add($"{cfg.Name}: ret={res}, outNull={output == null}, outLen={output?.Length}, hasData={hasData}");
+                    if (hasData)
+                    {
+                        lines.Add($"  OUTPUT: [{string.Join(", ", output.Take(20))}]");
+                        break; // Found working config!
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lines.Add($"{cfg.Name}: EXCEPTION {ex.InnerException?.Message ?? ex.Message}");
+                }
+            }
+
+            return string.Join("\n", lines);
+        }
+
         public static (int returnCode, string[] output, string diagnostics) CalculateFromArray(string[] input)
         {
             if (!_initialized)

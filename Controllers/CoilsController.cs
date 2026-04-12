@@ -62,6 +62,15 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { geometries = list });
         }
 
+        // GET api/coils/brute-test — try all array configurations
+        [HttpGet]
+        [Route("brute-test")]
+        public IHttpActionResult BruteTest()
+        {
+            var info = CoilsEngine.BruteForceTest();
+            return Ok(new { info });
+        }
+
         // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
         [HttpPost]
         [Route("calculate/raw")]
