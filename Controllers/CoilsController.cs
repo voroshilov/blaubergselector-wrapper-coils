@@ -22,17 +22,17 @@ namespace blaubergselector_wrapper_coils.Controllers
                 return BadRequest("InletAirTempDryBulb is required");
 
             string[] inputArray = request.ToInputArray();
-            var (returnCode, output) = CoilsEngine.CalculateFromArray(inputArray);
+            var (returnCode, output, diagnostics) = CoilsEngine.CalculateFromArray(inputArray);
 
             if (returnCode != 0)
             {
                 return Content(
                     (System.Net.HttpStatusCode)422,
-                    new { error = $"Calculation failed with code {returnCode}", returnCode, inputArray = inputArray });
+                    new { error = $"Calculation failed with code {returnCode}", returnCode, diagnostics, inputArray });
             }
 
             var response = CalculateResponse.FromOutputArray(output, returnCode);
-            return Ok(new { result = response, rawOutput = output, rawInput = inputArray });
+            return Ok(new { result = response, rawOutput = output, rawInput = inputArray, diagnostics });
         }
 
         // POST api/coils/calculate/raw  — pass raw string[] directly (for debugging)
@@ -43,9 +43,9 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (input == null || input.Length == 0)
                 return BadRequest("Input array is null or empty");
 
-            var (returnCode, output) = CoilsEngine.CalculateFromArray(input);
+            var (returnCode, output, diagnostics) = CoilsEngine.CalculateFromArray(input);
 
-            return Ok(new { returnCode, output });
+            return Ok(new { returnCode, output, diagnostics });
         }
     }
 }
