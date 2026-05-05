@@ -47,5 +47,18 @@ namespace blaubergselector_wrapper_coils.Controllers
 
             return Ok(new { returnCode, output });
         }
+
+        // GET api/coils/fluids?type=2
+        // type: 1=PureLiquid, 2=MixtureLiquid, 3=PureGas, 4=MixtureGas, 5=Refrigerants
+        [HttpGet]
+        [Route("fluids")]
+        public IHttpActionResult Fluids(int type = 2)
+        {
+            if (type < 1 || type > 5)
+                return BadRequest("type must be between 1 and 5");
+
+            var fluids = CoilsEngine.FluidsList(type);
+            return Ok(fluids);
+        }
     }
 }

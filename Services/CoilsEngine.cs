@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Unilab.C8DllNet.Public;
 
@@ -87,6 +88,14 @@ namespace blaubergselector_wrapper_coils.Services
             int res = _dll.CalculateFromArray(input, ref output);
 
             return (res, output);
+        }
+
+        public static List<string> FluidsList(int fluidType)
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            return _dll.FluidsList((DllMain.EC6FluidTypes)fluidType);
         }
     }
 }
