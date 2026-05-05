@@ -60,5 +60,18 @@ namespace blaubergselector_wrapper_coils.Controllers
             var fluids = CoilsEngine.FluidsList(type);
             return Ok(fluids);
         }
+
+        // GET api/coils/geometries?modality=1
+        // modality: 1=Heating, 2=Cooling, 3=Condensing, 4=DirectExpansion, 5=Steam, 6=PumpEvaporator
+        [HttpGet]
+        [Route("geometries")]
+        public IHttpActionResult Geometries(int modality = 1)
+        {
+            if (modality < 1 || modality > 6)
+                return BadRequest("modality must be between 1 and 6");
+
+            var geometries = CoilsEngine.GeometriesList(modality);
+            return Ok(geometries);
+        }
     }
 }

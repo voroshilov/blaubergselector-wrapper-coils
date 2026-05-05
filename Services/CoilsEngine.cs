@@ -97,5 +97,13 @@ namespace blaubergselector_wrapper_coils.Services
 
             return _dll.FluidsList((DllMain.EC6FluidTypes)fluidType);
         }
+
+        public static List<string> GeometriesList(int modality)
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            return _dll.GeometriesList((DllMain.EC6CalcModalities)modality);
+        }
     }
 }
