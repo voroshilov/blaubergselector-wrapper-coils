@@ -101,6 +101,33 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { returnCode, output });
         }
 
+        // POST api/coils/heat-recovery/fluid-flow
+        [HttpPost]
+        [Route("heat-recovery/fluid-flow")]
+        public IHttpActionResult HeatRecoveryFluidFlow([FromBody] HeatRecoveryRequest request)
+        {
+            if (request == null)
+                return BadRequest("Request body is null");
+
+            string[] inputArray = request.ToInputArray();
+            double fluidFlow = CoilsEngine.HeatRecoveryCalculateFluidFlow(inputArray);
+
+            return Ok(new { fluidFlow });
+        }
+
+        // POST api/coils/heat-recovery/fluid-flow/raw
+        [HttpPost]
+        [Route("heat-recovery/fluid-flow/raw")]
+        public IHttpActionResult HeatRecoveryFluidFlowRaw([FromBody] string[] input)
+        {
+            if (input == null || input.Length == 0)
+                return BadRequest("Input array is null or empty");
+
+            double fluidFlow = CoilsEngine.HeatRecoveryCalculateFluidFlow(input);
+
+            return Ok(new { fluidFlow });
+        }
+
         // GET api/coils/fluids?type=2
         // type: 1=PureLiquid, 2=MixtureLiquid, 3=PureGas, 4=MixtureGas, 5=Refrigerants
         [HttpGet]
