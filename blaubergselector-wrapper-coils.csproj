@@ -96,6 +96,8 @@
     <Compile Include="Controllers\CoilsController.cs" />
     <Compile Include="Models\CalculateRequest.cs" />
     <Compile Include="Models\CalculateResponse.cs" />
+    <Compile Include="Models\HeatRecoveryRequest.cs" />
+    <Compile Include="Models\HeatRecoveryResponse.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\CoilsEngine.cs" />

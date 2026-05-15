@@ -90,6 +90,17 @@ namespace blaubergselector_wrapper_coils.Services
             return (res, output);
         }
 
+        public static (int returnCode, string[] output) HeatRecoveryCalculateFromArray(string[] input)
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            string[] output = null;
+            int res = _dll.HeatRecovery_CalculateFromArray(input, ref output);
+
+            return (res, output);
+        }
+
         public static List<string> FluidsList(int fluidType)
         {
             if (!_initialized)

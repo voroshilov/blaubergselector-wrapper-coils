@@ -48,6 +48,59 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(new { returnCode, output });
         }
 
+        // POST api/coils/heat-recovery
+        [HttpPost]
+        [Route("heat-recovery")]
+        public IHttpActionResult HeatRecovery([FromBody] HeatRecoveryRequest request)
+        {
+            if (request == null)
+                return BadRequest("Request body is null");
+
+            if (request.SupplyCoil == null || string.IsNullOrEmpty(request.SupplyCoil.Geometry))
+                return BadRequest("supply_coil.geometry is required");
+
+            if (request.ExhaustCoil == null || string.IsNullOrEmpty(request.ExhaustCoil.Geometry))
+                return BadRequest("exhaust_coil.geometry is required");
+
+            if (string.IsNullOrEmpty(request.SupplyCoil.InletAirTempDryBulb))
+                return BadRequest("supply_coil.inlet_air_temp_dry_bulb is required");
+
+            if (string.IsNullOrEmpty(request.ExhaustCoil.InletAirTempDryBulb))
+                return BadRequest("exhaust_coil.inlet_air_temp_dry_bulb is required");
+
+            if (request.Fluid == null || string.IsNullOrEmpty(request.Fluid.FluidName))
+                return BadRequest("fluid.fluid_name is required");
+
+            if (string.IsNullOrEmpty(request.Fluid.FluidFlow))
+                return BadRequest("fluid.fluid_flow is required");
+
+            string[] inputArray = request.ToInputArray();
+            var (returnCode, output) = CoilsEngine.HeatRecoveryCalculateFromArray(inputArray);
+
+            if (returnCode != 0)
+            {
+                return Content(
+                    (System.Net.HttpStatusCode)422,
+                    new { error = $"Heat recovery calculation failed with code {returnCode}", returnCode });
+            }
+
+            var response = HeatRecoveryResponse.FromOutputArray(output, returnCode);
+            return Ok(response);
+        }
+
+        // POST api/coils/heat-recovery/raw
+        [HttpPost]
+        [Route("heat-recovery/raw")]
+        public IHttpActionResult HeatRecoveryRaw([FromBody] string[] input)
+        {
+            if (input == null || input.Length == 0)
+                return BadRequest("Input array is null or empty");
+
+            var (returnCode, output) = CoilsEngine.HeatRecoveryCalculateFromArray(input);
+
+            return Ok(new { returnCode, output });
+        }
+
         // GET api/coils/fluids?type=2
         // type: 1=PureLiquid, 2=MixtureLiquid, 3=PureGas, 4=MixtureGas, 5=Refrigerants
         [HttpGet]
