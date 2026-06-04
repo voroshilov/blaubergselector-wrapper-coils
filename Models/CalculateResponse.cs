@@ -45,7 +45,7 @@ namespace blaubergselector_wrapper_coils.Models
         // Line 19
         public string OutletManifold { get; set; }
 
-        // Lines 20-41: extended fields returned by DLL but not in the 30/01/20 doc.
+        // Lines 20-41: extended fields returned by DLL (matches developer's reference output).
         // Names taken from the Desktop Application UI.
 
         // Line 20: m²
@@ -129,28 +129,28 @@ namespace blaubergselector_wrapper_coils.Models
             resp.OutletManifold = Get(output, 18);           // line 19
 
             // Extended fields (line 20+) — empty string if DLL didn't return them.
-            resp.ExchangerSurface = Get(output, 19);                  // line 20
-            resp.InternalVolume = Get(output, 20);                    // line 21
-            resp.GeometryEurovent = Get(output, 21);                  // line 22
-            resp.CalculationEurovent = Get(output, 22);               // line 23
-            resp.PressureDropFluidSideOnlyCoil = Get(output, 23);     // line 24
+            resp.ExchangerSurface = Get(output, 19);                    // line 20
+            resp.InternalVolume = Get(output, 20);                      // line 21
+            resp.GeometryEurovent = Get(output, 21);                    // line 22
+            resp.CalculationEurovent = Get(output, 22);                 // line 23
+            resp.PressureDropFluidSideOnlyCoil = Get(output, 23);       // line 24
             resp.PressureDropFluidSideInletManifold = Get(output, 24);  // line 25
             resp.PressureDropFluidSideOutletManifold = Get(output, 25); // line 26
-            resp.TotalWeight = Get(output, 26);                       // line 27
-            resp.TubesWeight = Get(output, 27);                       // line 28
-            resp.FinsWeight = Get(output, 28);                        // line 29
-            resp.ManifoldsWeight = Get(output, 29);                   // line 30
-            resp.FrameWeight = Get(output, 30);                       // line 31
-            resp.TotalPrice = Get(output, 31);                        // line 32
-            resp.MaterialsCost = Get(output, 32);                     // line 33
-            resp.OverallLength = Get(output, 33);                     // line 34
-            resp.OverallHeight = Get(output, 34);                     // line 35
-            resp.OverallDepth = Get(output, 35);                      // line 36
-            resp.NumberOfTubesPerRow = Get(output, 36);               // line 37
-            resp.CoilModel = Get(output, 37);                         // line 38
-            resp.QuantityOfProducedWater = Get(output, 38);           // line 39
-            resp.CoilInternalVolume = Get(output, 39);                // line 40
-            resp.DryPressureDrop = Get(output, 40);                   // line 41
+            resp.TotalWeight = Get(output, 26);                         // line 27
+            resp.TubesWeight = Get(output, 27);                         // line 28
+            resp.FinsWeight = Get(output, 28);                          // line 29
+            resp.ManifoldsWeight = Get(output, 29);                     // line 30
+            resp.FrameWeight = Get(output, 30);                         // line 31
+            resp.TotalPrice = Get(output, 31);                          // line 32
+            resp.MaterialsCost = Get(output, 32);                       // line 33
+            resp.OverallLength = Get(output, 33);                       // line 34
+            resp.OverallHeight = Get(output, 34);                       // line 35
+            resp.OverallDepth = Get(output, 35);                        // line 36
+            resp.NumberOfTubesPerRow = Get(output, 36);                 // line 37
+            resp.CoilModel = Get(output, 37);                           // line 38
+            resp.QuantityOfProducedWater = Get(output, 38);             // line 39
+            resp.CoilInternalVolume = Get(output, 39);                  // line 40
+            resp.DryPressureDrop = Get(output, 40);                     // line 41
 
             return resp;
         }

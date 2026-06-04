@@ -153,5 +153,14 @@ namespace blaubergselector_wrapper_coils.Controllers
             var geometries = CoilsEngine.GeometriesList(modality);
             return Ok(geometries);
         }
+
+        // GET api/coils/inspect
+        // Diagnostic: dump all public members of DllMain via reflection.
+        [HttpGet]
+        [Route("inspect")]
+        public IHttpActionResult Inspect()
+        {
+            return Ok(CoilsEngine.InspectDll());
+        }
     }
 }

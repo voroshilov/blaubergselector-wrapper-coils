@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using Unilab.C8DllNet.Public;
 
 namespace blaubergselector_wrapper_coils.Services
@@ -107,6 +109,61 @@ namespace blaubergselector_wrapper_coils.Services
                 throw new InvalidOperationException("CoilsEngine is not initialized");
 
             return _dll.HeatRecovery_CalculateFluidFlow(input);
+        }
+
+        public static object InspectDll()
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            var type = _dll.GetType();
+
+            var properties = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(p =>
+                {
+                    string value = "<unreadable>";
+                    try { value = p.GetValue(_dll)?.ToString() ?? "null"; }
+                    catch (Exception ex) { value = "<error: " + ex.Message + ">"; }
+                    return new { name = p.Name, type = p.PropertyType.Name, value };
+                })
+                .OrderBy(p => p.name)
+                .ToArray();
+
+            var fields = type
+                .GetFields(BindingFlags.Public | BindingFlags.Instance)
+                .Select(f =>
+                {
+                    string value = "<unreadable>";
+                    try { value = f.GetValue(_dll)?.ToString() ?? "null"; }
+                    catch (Exception ex) { value = "<error: " + ex.Message + ">"; }
+                    return new { name = f.Name, type = f.FieldType.Name, value };
+                })
+                .OrderBy(f => f.name)
+                .ToArray();
+
+            var methods = type
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Select(m => new
+                {
+                    name = m.Name,
+                    returnType = m.ReturnType.Name,
+                    parameters = m.GetParameters().Select(p => p.ParameterType.Name + " " + p.Name).ToArray()
+                })
+                .OrderBy(m => m.name)
+                .ToArray();
+
+            var assemblyVersion = type.Assembly.GetName().Version?.ToString();
+            var assemblyLocation = type.Assembly.Location;
+
+            return new
+            {
+                assemblyVersion,
+                assemblyLocation,
+                properties,
+                fields,
+                methods
+            };
         }
 
         public static List<string> FluidsList(int fluidType)
