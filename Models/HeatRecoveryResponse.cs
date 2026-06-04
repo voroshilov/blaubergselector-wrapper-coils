@@ -3,6 +3,8 @@ namespace blaubergselector_wrapper_coils.Models
     public class HeatRecoveryResponse
     {
         public int ReturnCode { get; set; }
+        public string[] Warnings { get; set; }
+        public int OutputArrayLength { get; set; }
 
         public HeatRecoverySummary Summary { get; set; }
         public HeatRecoveryCoilOutput SupplyCoil { get; set; }
@@ -12,11 +14,12 @@ namespace blaubergselector_wrapper_coils.Models
         /// Maps from the DLL's output array (0-based: doc line 1 = arr[0]).
         /// Doc layout: lines 1-18 = summary, 19-38 = supply, 39-58 = exhaust.
         /// </summary>
-        public static HeatRecoveryResponse FromOutputArray(string[] output, int returnCode)
+        public static HeatRecoveryResponse FromOutputArray(string[] output, int returnCode, string[] warnings = null)
         {
             var resp = new HeatRecoveryResponse
             {
                 ReturnCode = returnCode,
+                Warnings = warnings,
                 Summary = new HeatRecoverySummary(),
                 SupplyCoil = new HeatRecoveryCoilOutput(),
                 ExhaustCoil = new HeatRecoveryCoilOutput()
@@ -24,6 +27,8 @@ namespace blaubergselector_wrapper_coils.Models
 
             if (output == null || output.Length == 0)
                 return resp;
+
+            resp.OutputArrayLength = output.Length;
 
             // Summary: lines 1-17 (line 18 is "Empty" per doc)
             resp.Summary.TotalCapacity                  = Get(output, 0);  // line 1

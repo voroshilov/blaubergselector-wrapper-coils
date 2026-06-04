@@ -96,12 +96,15 @@ namespace blaubergselector_wrapper_coils.Models
         // Total length of the DLL output array — useful while we're still mapping fields.
         public int OutputArrayLength { get; set; }
 
+        // Warnings collected from the DLL after the call (via HasWarnings + GetWarning).
+        public string[] Warnings { get; set; }
+
         /// <summary>
         /// Maps from the DLL's output array (0-based: doc line 1 = arr[0]).
         /// </summary>
-        public static CalculateResponse FromOutputArray(string[] output, int returnCode)
+        public static CalculateResponse FromOutputArray(string[] output, int returnCode, string[] warnings = null)
         {
-            var resp = new CalculateResponse { ReturnCode = returnCode };
+            var resp = new CalculateResponse { ReturnCode = returnCode, Warnings = warnings };
 
             if (output == null || output.Length == 0)
                 return resp;

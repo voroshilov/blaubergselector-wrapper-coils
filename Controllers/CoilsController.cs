@@ -22,16 +22,16 @@ namespace blaubergselector_wrapper_coils.Controllers
                 return BadRequest("InletAirTempDryBulb is required");
 
             string[] inputArray = request.ToInputArray();
-            var (returnCode, output) = CoilsEngine.CalculateFromArray(inputArray);
+            var (returnCode, output, warnings) = CoilsEngine.CalculateFromArray(inputArray);
 
             if (returnCode != 0)
             {
                 return Content(
                     (System.Net.HttpStatusCode)422,
-                    new { error = $"Calculation failed with code {returnCode}", returnCode });
+                    new { error = $"Calculation failed with code {returnCode}", returnCode, warnings });
             }
 
-            var response = CalculateResponse.FromOutputArray(output, returnCode);
+            var response = CalculateResponse.FromOutputArray(output, returnCode, warnings);
             return Ok(response);
         }
 
@@ -43,9 +43,9 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (input == null || input.Length == 0)
                 return BadRequest("Input array is null or empty");
 
-            var (returnCode, output) = CoilsEngine.CalculateFromArray(input);
+            var (returnCode, output, warnings) = CoilsEngine.CalculateFromArray(input);
 
-            return Ok(new { returnCode, output });
+            return Ok(new { returnCode, output, warnings });
         }
 
         // POST api/coils/heat-recovery
@@ -75,16 +75,16 @@ namespace blaubergselector_wrapper_coils.Controllers
                 return BadRequest("fluid.fluid_flow is required");
 
             string[] inputArray = request.ToInputArray();
-            var (returnCode, output) = CoilsEngine.HeatRecoveryCalculateFromArray(inputArray);
+            var (returnCode, output, warnings) = CoilsEngine.HeatRecoveryCalculateFromArray(inputArray);
 
             if (returnCode != 0)
             {
                 return Content(
                     (System.Net.HttpStatusCode)422,
-                    new { error = $"Heat recovery calculation failed with code {returnCode}", returnCode });
+                    new { error = $"Heat recovery calculation failed with code {returnCode}", returnCode, warnings });
             }
 
-            var response = HeatRecoveryResponse.FromOutputArray(output, returnCode);
+            var response = HeatRecoveryResponse.FromOutputArray(output, returnCode, warnings);
             return Ok(response);
         }
 
@@ -96,9 +96,9 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (input == null || input.Length == 0)
                 return BadRequest("Input array is null or empty");
 
-            var (returnCode, output) = CoilsEngine.HeatRecoveryCalculateFromArray(input);
+            var (returnCode, output, warnings) = CoilsEngine.HeatRecoveryCalculateFromArray(input);
 
-            return Ok(new { returnCode, output });
+            return Ok(new { returnCode, output, warnings });
         }
 
         // POST api/coils/heat-recovery/fluid-flow

@@ -81,7 +81,7 @@ namespace blaubergselector_wrapper_coils.Services
             }
         }
 
-        public static (int returnCode, string[] output) CalculateFromArray(string[] input)
+        public static (int returnCode, string[] output, string[] warnings) CalculateFromArray(string[] input)
         {
             if (!_initialized)
                 throw new InvalidOperationException("CoilsEngine is not initialized");
@@ -89,10 +89,10 @@ namespace blaubergselector_wrapper_coils.Services
             string[] output = null;
             int res = _dll.CalculateFromArray(input, ref output);
 
-            return (res, output);
+            return (res, output, CollectWarnings());
         }
 
-        public static (int returnCode, string[] output) HeatRecoveryCalculateFromArray(string[] input)
+        public static (int returnCode, string[] output, string[] warnings) HeatRecoveryCalculateFromArray(string[] input)
         {
             if (!_initialized)
                 throw new InvalidOperationException("CoilsEngine is not initialized");
@@ -100,7 +100,22 @@ namespace blaubergselector_wrapper_coils.Services
             string[] output = null;
             int res = _dll.HeatRecovery_CalculateFromArray(input, ref output);
 
-            return (res, output);
+            return (res, output, CollectWarnings());
+        }
+
+        private static string[] CollectWarnings()
+        {
+            int count = _dll.HasWarnings;
+            if (count <= 0)
+                return Array.Empty<string>();
+
+            var warnings = new string[count];
+            for (int i = 0; i < count; i++)
+            {
+                try { warnings[i] = _dll.GetWarning(i); }
+                catch (Exception ex) { warnings[i] = "<error: " + ex.Message + ">"; }
+            }
+            return warnings;
         }
 
         public static double HeatRecoveryCalculateFluidFlow(string[] input)
