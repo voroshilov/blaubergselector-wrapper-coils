@@ -131,29 +131,39 @@ namespace blaubergselector_wrapper_coils.Models
             resp.InletManifold = Get(output, 17);            // line 18
             resp.OutletManifold = Get(output, 18);           // line 19
 
-            // Extended fields (line 20+) — empty string if DLL didn't return them.
+            // Lines 20-23 are always present in both 38- and 41-field DLL builds.
             resp.ExchangerSurface = Get(output, 19);                    // line 20
             resp.InternalVolume = Get(output, 20);                      // line 21
             resp.GeometryEurovent = Get(output, 21);                    // line 22
             resp.CalculationEurovent = Get(output, 22);                 // line 23
-            resp.PressureDropFluidSideOnlyCoil = Get(output, 23);       // line 24
-            resp.PressureDropFluidSideInletManifold = Get(output, 24);  // line 25
-            resp.PressureDropFluidSideOutletManifold = Get(output, 25); // line 26
-            resp.TotalWeight = Get(output, 26);                         // line 27
-            resp.TubesWeight = Get(output, 27);                         // line 28
-            resp.FinsWeight = Get(output, 28);                          // line 29
-            resp.ManifoldsWeight = Get(output, 29);                     // line 30
-            resp.FrameWeight = Get(output, 30);                         // line 31
-            resp.TotalPrice = Get(output, 31);                          // line 32
-            resp.MaterialsCost = Get(output, 32);                       // line 33
-            resp.OverallLength = Get(output, 33);                       // line 34
-            resp.OverallHeight = Get(output, 34);                       // line 35
-            resp.OverallDepth = Get(output, 35);                        // line 36
-            resp.NumberOfTubesPerRow = Get(output, 36);                 // line 37
-            resp.CoilModel = Get(output, 37);                           // line 38
-            resp.QuantityOfProducedWater = Get(output, 38);             // line 39
-            resp.CoilInternalVolume = Get(output, 39);                  // line 40
-            resp.DryPressureDrop = Get(output, 40);                     // line 41
+
+            // Detect DLL build: 41-field build returns 3 manifold pressure drops at indices 23-25;
+            // 38-field build skips them and the remaining fields shift left by 3.
+            bool hasManifoldPressureDrops = output.Length >= 41;
+            int shift = hasManifoldPressureDrops ? 0 : 3;
+
+            if (hasManifoldPressureDrops)
+            {
+                resp.PressureDropFluidSideOnlyCoil = Get(output, 23);       // line 24
+                resp.PressureDropFluidSideInletManifold = Get(output, 24);  // line 25
+                resp.PressureDropFluidSideOutletManifold = Get(output, 25); // line 26
+            }
+
+            resp.TotalWeight = Get(output, 26 - shift);                 // line 27
+            resp.TubesWeight = Get(output, 27 - shift);                 // line 28
+            resp.FinsWeight = Get(output, 28 - shift);                  // line 29
+            resp.ManifoldsWeight = Get(output, 29 - shift);             // line 30
+            resp.FrameWeight = Get(output, 30 - shift);                 // line 31
+            resp.TotalPrice = Get(output, 31 - shift);                  // line 32
+            resp.MaterialsCost = Get(output, 32 - shift);               // line 33
+            resp.OverallLength = Get(output, 33 - shift);               // line 34
+            resp.OverallHeight = Get(output, 34 - shift);               // line 35
+            resp.OverallDepth = Get(output, 35 - shift);                // line 36
+            resp.NumberOfTubesPerRow = Get(output, 36 - shift);         // line 37
+            resp.CoilModel = Get(output, 37 - shift);                   // line 38
+            resp.QuantityOfProducedWater = Get(output, 38 - shift);     // line 39
+            resp.CoilInternalVolume = Get(output, 39 - shift);          // line 40
+            resp.DryPressureDrop = Get(output, 40 - shift);             // line 41
 
             return resp;
         }
