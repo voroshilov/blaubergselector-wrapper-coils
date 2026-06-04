@@ -99,7 +99,10 @@ namespace blaubergselector_wrapper_coils.Services
 
             // Pre-allocate: HeatRecovery_CalculateFromArray returns 0 with output=null when not pre-allocated.
             // Doc says max 58 output lines; we allocate 100 to be safe.
+            // Fill with empty strings (not C# default null) — native DLL may skip null slots.
             string[] output = new string[100];
+            for (int i = 0; i < output.Length; i++)
+                output[i] = "";
             int res = _dll.HeatRecovery_CalculateFromArray(input, ref output);
 
             return (res, output, CollectWarnings());
