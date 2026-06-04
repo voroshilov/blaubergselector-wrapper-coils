@@ -97,7 +97,9 @@ namespace blaubergselector_wrapper_coils.Services
             if (!_initialized)
                 throw new InvalidOperationException("CoilsEngine is not initialized");
 
-            string[] output = null;
+            // Pre-allocate: HeatRecovery_CalculateFromArray returns 0 with output=null when not pre-allocated.
+            // Doc says max 58 output lines; we allocate 100 to be safe.
+            string[] output = new string[100];
             int res = _dll.HeatRecovery_CalculateFromArray(input, ref output);
 
             return (res, output, CollectWarnings());

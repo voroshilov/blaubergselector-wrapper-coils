@@ -4,7 +4,8 @@ namespace blaubergselector_wrapper_coils.Models
     {
         public int ReturnCode { get; set; }
         public string[] Warnings { get; set; }
-        public int OutputArrayLength { get; set; }
+        // null = DLL didn't allocate (output was null); 0 = empty array; N = populated
+        public int? OutputArrayLength { get; set; }
 
         public HeatRecoverySummary Summary { get; set; }
         public HeatRecoveryCoilOutput SupplyCoil { get; set; }
@@ -25,10 +26,10 @@ namespace blaubergselector_wrapper_coils.Models
                 ExhaustCoil = new HeatRecoveryCoilOutput()
             };
 
+            resp.OutputArrayLength = output?.Length;
+
             if (output == null || output.Length == 0)
                 return resp;
-
-            resp.OutputArrayLength = output.Length;
 
             // Summary: lines 1-17 (line 18 is "Empty" per doc)
             resp.Summary.TotalCapacity                  = Get(output, 0);  // line 1
