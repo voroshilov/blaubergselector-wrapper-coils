@@ -16,12 +16,13 @@ namespace blaubergselector_wrapper_coils.Models
         public string AirDensity { get; set; } = "E";
 
         /// <summary>
-        /// Maps to the DLL's input array: exactly 100 elements, 1-based indexing.
+        /// Maps to the DLL's input array: exactly 101 elements, 1-based indexing.
         /// arr[0] is unused. Doc position N = arr[N].
+        /// Unilab confirmed the heat recovery input must be 101 elements long.
         /// </summary>
         public string[] ToInputArray()
         {
-            var arr = new string[100];
+            var arr = new string[101];
             for (int i = 0; i < arr.Length; i++)
                 arr[i] = "";
 
