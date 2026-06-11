@@ -35,6 +35,21 @@ namespace blaubergselector_wrapper_coils.Controllers
                     new { error = $"Calculation failed with code {returnCode}", returnCode, warnings });
             }
 
+            // The DLL reports some failures (unknown geometry, invalid parameter
+            // combinations) as return code 0 with an EMPTY output array. Treat that
+            // as an error instead of returning a 200 full of nulls.
+            if (IsEmptyOutput(output))
+            {
+                return Content(
+                    (System.Net.HttpStatusCode)422,
+                    new
+                    {
+                        error = "Calculation produced no output (unknown geometry or invalid parameter combination)",
+                        returnCode,
+                        warnings
+                    });
+            }
+
             var response = CalculateResponse.FromOutputArray(output, returnCode, warnings);
             return Ok(response);
         }
@@ -91,6 +106,19 @@ namespace blaubergselector_wrapper_coils.Controllers
                 return Content(
                     (System.Net.HttpStatusCode)422,
                     new { error = $"Heat recovery calculation failed with code {returnCode}", returnCode, warnings });
+            }
+
+            // Same silent-failure mode as /calculate: code 0 with an empty output array.
+            if (IsEmptyOutput(output))
+            {
+                return Content(
+                    (System.Net.HttpStatusCode)422,
+                    new
+                    {
+                        error = "Heat recovery calculation produced no output (unknown geometry or invalid parameter combination)",
+                        returnCode,
+                        warnings
+                    });
             }
 
             var response = HeatRecoveryResponse.FromOutputArray(output, returnCode, warnings);
@@ -211,6 +239,18 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Content(
                 (System.Net.HttpStatusCode)422,
                 new { error = message, availableMaterials = CoilsEngine.MaterialsList() });
+        }
+
+        private static bool IsEmptyOutput(string[] output)
+        {
+            if (output == null || output.Length == 0)
+                return true;
+            foreach (string value in output)
+            {
+                if (!string.IsNullOrWhiteSpace(value))
+                    return false;
+            }
+            return true;
         }
 
         // GET api/coils/inspect
