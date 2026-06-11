@@ -21,6 +21,10 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (string.IsNullOrEmpty(request.InletAirTempDryBulb))
                 return BadRequest("InletAirTempDryBulb is required");
 
+            string materialError = NormalizeMaterials(request);
+            if (materialError != null)
+                return MaterialError(materialError);
+
             string[] inputArray = request.ToInputArray();
             var (returnCode, output, warnings) = CoilsEngine.CalculateFromArray(inputArray);
 
@@ -73,6 +77,11 @@ namespace blaubergselector_wrapper_coils.Controllers
 
             if (string.IsNullOrEmpty(request.Fluid.FluidFlow))
                 return BadRequest("fluid.fluid_flow is required");
+
+            string materialError = NormalizeMaterials(request.SupplyCoil, "supply_coil")
+                ?? NormalizeMaterials(request.ExhaustCoil, "exhaust_coil");
+            if (materialError != null)
+                return MaterialError(materialError);
 
             string[] inputArray = request.ToInputArray();
             var (returnCode, output, warnings) = CoilsEngine.HeatRecoveryCalculateFromArray(inputArray);
@@ -162,6 +171,46 @@ namespace blaubergselector_wrapper_coils.Controllers
         {
             var materials = CoilsEngine.MaterialsList();
             return Ok(materials);
+        }
+
+        // Canonicalizes the request materials against the DLL list (the DLL silently
+        // computes nothing on unknown/miscased materials). Returns an error message
+        // when a non-empty material matches nothing, otherwise null.
+        private static string NormalizeMaterials(CalculateRequest request)
+        {
+            string tube = CoilsEngine.NormalizeMaterial(request.TubeMaterial);
+            if (tube == null)
+                return "Unknown tube_material '" + request.TubeMaterial + "'";
+            request.TubeMaterial = tube;
+
+            string fin = CoilsEngine.NormalizeMaterial(request.FinMaterial);
+            if (fin == null)
+                return "Unknown fin_material '" + request.FinMaterial + "'";
+            request.FinMaterial = fin;
+
+            return null;
+        }
+
+        private static string NormalizeMaterials(HeatRecoveryCoilInput coil, string name)
+        {
+            string tube = CoilsEngine.NormalizeMaterial(coil.TubeMaterial);
+            if (tube == null)
+                return "Unknown " + name + ".tube_material '" + coil.TubeMaterial + "'";
+            coil.TubeMaterial = tube;
+
+            string fin = CoilsEngine.NormalizeMaterial(coil.FinMaterial);
+            if (fin == null)
+                return "Unknown " + name + ".fin_material '" + coil.FinMaterial + "'";
+            coil.FinMaterial = fin;
+
+            return null;
+        }
+
+        private IHttpActionResult MaterialError(string message)
+        {
+            return Content(
+                (System.Net.HttpStatusCode)422,
+                new { error = message, availableMaterials = CoilsEngine.MaterialsList() });
         }
 
         // GET api/coils/inspect

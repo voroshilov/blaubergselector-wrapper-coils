@@ -205,7 +205,42 @@ namespace blaubergselector_wrapper_coils.Services
             if (!_initialized)
                 throw new InvalidOperationException("CoilsEngine is not initialized");
 
-            return _dll.MaterialsList();
+            if (_materials == null)
+                _materials = _dll.MaterialsList();
+            return _materials;
+        }
+
+        private static List<string> _materials;
+
+        // Canonicalizes a material name against the DLL's own materials list. The DLL is
+        // case/spelling sensitive and silently computes nothing on unknown materials, while
+        // clients (e.g. Akeneo option codes) send lowercase_with_underscores. Comparison
+        // folds both sides to lowercase alphanumerics, so "copper", "stainless_steel" and
+        // "Cupro - Nichel" all match regardless of case, underscores, spaces or dashes.
+        // Empty input is returned as-is; non-empty input with no match returns null.
+        public static string NormalizeMaterial(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return value;
+
+            string folded = Fold(value);
+            foreach (string material in MaterialsList())
+            {
+                if (Fold(material) == folded)
+                    return material;
+            }
+            return null;
+        }
+
+        private static string Fold(string value)
+        {
+            var sb = new System.Text.StringBuilder(value.Length);
+            foreach (char c in value)
+            {
+                if (char.IsLetterOrDigit(c))
+                    sb.Append(char.ToLowerInvariant(c));
+            }
+            return sb.ToString();
         }
     }
 }
