@@ -154,6 +154,16 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(geometries);
         }
 
+        // GET api/coils/materials
+        // Tube/fin materials available in the DLL database (one shared list).
+        [HttpGet]
+        [Route("materials")]
+        public IHttpActionResult Materials()
+        {
+            var materials = CoilsEngine.MaterialsList();
+            return Ok(materials);
+        }
+
         // GET api/coils/inspect
         // Diagnostic: dump all public members of DllMain via reflection.
         [HttpGet]

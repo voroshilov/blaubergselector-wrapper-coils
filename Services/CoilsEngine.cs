@@ -198,5 +198,14 @@ namespace blaubergselector_wrapper_coils.Services
 
             return _dll.GeometriesList((DllMain.EC6CalcModalities)modality);
         }
+
+        // Single shared list: the DLL does not distinguish tube vs fin materials.
+        public static List<string> MaterialsList()
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            return _dll.MaterialsList();
+        }
     }
 }
