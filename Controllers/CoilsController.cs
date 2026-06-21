@@ -201,6 +201,17 @@ namespace blaubergselector_wrapper_coils.Controllers
             return Ok(materials);
         }
 
+        // GET api/coils/manifolds
+        // Manifold descriptions available in the DLL database (e.g. "28x1", "35x1").
+        // Valid for InletManifold/OutletManifold, alongside "A" (auto) and "" (none).
+        [HttpGet]
+        [Route("manifolds")]
+        public IHttpActionResult Manifolds()
+        {
+            var manifolds = CoilsEngine.ManifoldsList();
+            return Ok(manifolds);
+        }
+
         // Canonicalizes the request materials against the DLL list (the DLL silently
         // computes nothing on unknown/miscased materials). Returns an error message
         // when a non-empty material matches nothing, otherwise null.

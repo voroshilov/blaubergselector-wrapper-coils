@@ -199,6 +199,21 @@ namespace blaubergselector_wrapper_coils.Services
             return _dll.GeometriesList((DllMain.EC6CalcModalities)modality);
         }
 
+        // Manifold descriptions (e.g. "28x1", "35x1") available in the DLL database.
+        // These are the valid values for InletManifold/OutletManifold, in addition to
+        // the two special values "A" (automatic selection) and "" (no manifold).
+        public static List<string> ManifoldsList()
+        {
+            if (!_initialized)
+                throw new InvalidOperationException("CoilsEngine is not initialized");
+
+            if (_manifolds == null)
+                _manifolds = _dll.ManifoldsList();
+            return _manifolds;
+        }
+
+        private static List<string> _manifolds;
+
         // Single shared list: the DLL does not distinguish tube vs fin materials.
         public static List<string> MaterialsList()
         {
