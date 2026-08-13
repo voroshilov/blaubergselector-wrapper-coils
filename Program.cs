@@ -40,8 +40,11 @@ namespace blaubergselector_wrapper_coils
             if (string.IsNullOrWhiteSpace(url))
                 url = "http://+:80/";
 
+            string databasePath = ConfigurationManager.AppSettings["Coils.DatabasePath"];
+
             Console.WriteLine($"Initializing Coils engine from: {rootPath}");
-            CoilsEngine.Init(rootPath);
+            CoilsEngine.Init(rootPath, databasePath);
+            Console.WriteLine($"Database path: {CoilsEngine.DatabasePath}");
 
             try
             {

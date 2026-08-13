@@ -16,7 +16,8 @@ namespace blaubergselector_wrapper_coils
             GlobalConfiguration.Configure(WebApiConfig.Register);
 
             var rootPath = ConfigurationManager.AppSettings["Coils.RootPath"];
-            CoilsEngine.Init(rootPath);
+            var databasePath = ConfigurationManager.AppSettings["Coils.DatabasePath"];
+            CoilsEngine.Init(rootPath, databasePath);
         }
 
         protected void Application_End()

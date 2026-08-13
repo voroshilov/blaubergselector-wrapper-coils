@@ -13,8 +13,20 @@ namespace blaubergselector_wrapper_coils.Services
         private static DllMain _dll;
         private static bool _initialized;
         private static string _rootPath;
+        private static string _databasePath;
 
-        public static void Init(string rootPath)
+        // Default database location relative to the root: the installer refreshes the
+        // databases here, while the copies sitting directly in the root are stale leftovers
+        // (Coils.db3 there is months older, C6Fluids.db3 years older). The rest of the
+        // configuration already agrees — InstallationFolderPath and both EF connection
+        // strings point at this folder.
+        private const string DefaultDatabaseFolder = "Database";
+
+        /// <param name="databasePath">
+        /// Database folder passed to the DLL. Null/empty selects the "Database" subfolder
+        /// of the root when it exists, falling back to the root itself.
+        /// </param>
+        public static void Init(string rootPath, string databasePath = null)
         {
             lock (_lock)
             {
@@ -56,18 +68,43 @@ namespace blaubergselector_wrapper_coils.Services
                         ex);
                 }
 
+                string resolvedDatabasePath = ResolveDatabasePath(rootPath, databasePath);
+
                 int initRes = _dll.Init(
                     rootPath,
-                    rootPath,
+                    resolvedDatabasePath,
                     DllMain.EC6Languages.lngEnglish
                 );
 
                 if (initRes != 0 && initRes != -1)
-                    throw new Exception($"Init failed with code {initRes}");
+                    throw new Exception($"Init failed with code {initRes}, databasePath = '{resolvedDatabasePath}'");
 
                 _rootPath = rootPath;
+                _databasePath = resolvedDatabasePath;
                 _initialized = true;
             }
+        }
+
+        // Database folder the DLL was actually initialized with.
+        public static string DatabasePath
+        {
+            get { return _databasePath; }
+        }
+
+        private static string ResolveDatabasePath(string rootPath, string configured)
+        {
+            if (!string.IsNullOrWhiteSpace(configured))
+            {
+                string path = configured.Trim();
+                if (!Path.IsPathRooted(path))
+                    path = Path.Combine(rootPath, path);
+                if (!Directory.Exists(path))
+                    throw new Exception($"Configured database directory does not exist: {path}");
+                return path;
+            }
+
+            string standard = Path.Combine(rootPath, DefaultDatabaseFolder);
+            return Directory.Exists(standard) ? standard : rootPath;
         }
 
         public static void Release()
@@ -101,6 +138,7 @@ namespace blaubergselector_wrapper_coils.Services
             {
                 serial = Serial(),
                 rootPath = _rootPath,
+                databasePath = _databasePath,
                 // What is ACTUALLY loaded into the process. The CLR resolves managed
                 // dependencies from the application's own folder, not from rootPath, so
                 // these are normally the Copy Local copies in bin — updating the installed
@@ -142,32 +180,103 @@ namespace blaubergselector_wrapper_coils.Services
             catch (Exception ex) { return "<error: " + ex.Message + ">"; }
         }
 
-        // Fingerprints every file under the activated root, recursively. Capped so a
-        // pathological directory cannot turn this endpoint into a full-disk hash.
-        private const int MaxFingerprintedFiles = 500;
+        // Files worth listing one by one: the engine binaries and the databases. Everything
+        // else under the root is bulk reference data (thousands of per-fluid .FLD/.MIX/.FLSP
+        // files) — listing those individually buries the signal, so they are aggregated per
+        // directory instead.
+        private static readonly string[] DetailedExtensions = { ".dll", ".exe", ".db3", ".mdb", ".ini" };
 
         private static object RootFiles()
         {
             if (string.IsNullOrEmpty(_rootPath) || !Directory.Exists(_rootPath))
-                return new { truncated = false, items = Array.Empty<object>() };
+                return new { binaries = Array.Empty<object>(), dataDirectories = Array.Empty<object>() };
 
             try
             {
                 string[] paths = Directory.GetFiles(_rootPath, "*", SearchOption.AllDirectories);
                 Array.Sort(paths, StringComparer.OrdinalIgnoreCase);
 
-                bool truncated = paths.Length > MaxFingerprintedFiles;
-                var items = paths
-                    .Take(MaxFingerprintedFiles)
+                var binaries = paths
+                    .Where(IsDetailed)
                     .Select(path => FileFingerprint(path, _rootPath))
                     .ToArray();
 
-                return new { truncated, items };
+                var dataDirectories = paths
+                    .Where(path => !IsDetailed(path))
+                    .GroupBy(TopLevelFolder, StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                    .Select(group => DirectorySummary(group.Key, group))
+                    .ToArray();
+
+                return new { binaries, dataDirectories };
             }
             catch (Exception ex)
             {
-                return new { error = ex.Message, truncated = false, items = Array.Empty<object>() };
+                return new { error = ex.Message, binaries = Array.Empty<object>(), dataDirectories = Array.Empty<object>() };
             }
+        }
+
+        private static bool IsDetailed(string path)
+        {
+            string extension = Path.GetExtension(path);
+            return DetailedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static string TopLevelFolder(string path)
+        {
+            string relative = Relative(path, _rootPath);
+            int separator = relative.IndexOf(Path.DirectorySeparatorChar);
+            return separator < 0 ? "." : relative.Substring(0, separator);
+        }
+
+        // Aggregate identity of a bulk data folder. The hash covers the file list plus each
+        // file's size and timestamp — not their contents: it is enough to notice that a data
+        // set changed, without reading tens of thousands of files on every request.
+        private static object DirectorySummary(string name, IEnumerable<string> paths)
+        {
+            long totalSize = 0;
+            int fileCount = 0;
+            DateTime newestWrite = DateTime.MinValue;
+            var metadata = new System.Text.StringBuilder();
+
+            foreach (string path in paths.OrderBy(p => p, StringComparer.OrdinalIgnoreCase))
+            {
+                fileCount++;
+                try
+                {
+                    var info = new FileInfo(path);
+                    totalSize += info.Length;
+                    if (info.LastWriteTimeUtc > newestWrite)
+                        newestWrite = info.LastWriteTimeUtc;
+                    metadata.Append(Relative(path, _rootPath)).Append('|')
+                            .Append(info.Length).Append('|')
+                            .Append(info.LastWriteTimeUtc.Ticks).Append('\n');
+                }
+                catch
+                {
+                    metadata.Append(Relative(path, _rootPath)).Append("|?\n");
+                }
+            }
+
+            return new
+            {
+                name,
+                fileCount,
+                totalSize,
+                newestWriteUtc = newestWrite == DateTime.MinValue ? null : newestWrite.ToString("o"),
+                hash = ShortHashOf(System.Text.Encoding.UTF8.GetBytes(metadata.ToString()))
+            };
+        }
+
+        private static string Relative(string path, string basePath)
+        {
+            if (!string.IsNullOrEmpty(basePath) && path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+            {
+                string relative = path.Substring(basePath.Length).TrimStart(Path.DirectorySeparatorChar);
+                if (!string.IsNullOrEmpty(relative))
+                    return relative;
+            }
+            return path;
         }
 
         // Identity of a single file, named relative to basePath so nested database files
@@ -187,15 +296,9 @@ namespace blaubergselector_wrapper_coils.Services
             }
             catch { /* unreadable */ }
 
-            string name = path;
-            if (!string.IsNullOrEmpty(basePath) && path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
-                name = path.Substring(basePath.Length).TrimStart(Path.DirectorySeparatorChar);
-            if (string.IsNullOrEmpty(name))
-                name = Path.GetFileName(path);
-
             return new
             {
-                name,
+                name = Relative(path, basePath),
                 size,
                 lastWriteUtc,
                 sha256 = Sha256(path, size, lastWriteUtc)
@@ -234,17 +337,29 @@ namespace blaubergselector_wrapper_coils.Services
                 using (var sha = System.Security.Cryptography.SHA256.Create())
                 using (var stream = File.OpenRead(path))
                 {
-                    byte[] hash = sha.ComputeHash(stream);
-                    var sb = new System.Text.StringBuilder(16);
-                    for (int i = 0; i < 8; i++)
-                        sb.Append(hash[i].ToString("x2"));
-                    return sb.ToString();
+                    return ShortHash(sha.ComputeHash(stream));
                 }
             }
             catch
             {
                 return null;
             }
+        }
+
+        private static string ShortHashOf(byte[] data)
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                return ShortHash(sha.ComputeHash(data));
+        }
+
+        // First 16 hex chars of a SHA-256: short enough to eyeball and paste into a bug
+        // report, wide enough to tell builds apart.
+        private static string ShortHash(byte[] hash)
+        {
+            var sb = new System.Text.StringBuilder(16);
+            for (int i = 0; i < 8; i++)
+                sb.Append(hash[i].ToString("x2"));
+            return sb.ToString();
         }
 
         public static (int returnCode, string[] output, string[] warnings) CalculateFromArray(string[] input)
