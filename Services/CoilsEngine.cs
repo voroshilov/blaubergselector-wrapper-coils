@@ -216,8 +216,14 @@ namespace blaubergselector_wrapper_coils.Services
             }
         }
 
+        // Root-level files are always listed individually regardless of extension: there are
+        // only a couple of dozen, and the odd ones out (activation keys, logs) are exactly
+        // what tells you whether the engine writes into its own installation directory.
         private static bool IsDetailed(string path)
         {
+            if (TopLevelFolder(path) == ".")
+                return true;
+
             string extension = Path.GetExtension(path);
             return DetailedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
         }
