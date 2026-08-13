@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,6 +13,8 @@ namespace blaubergselector_wrapper_coils.Services
         private static readonly object _lock = new object();
         private static DllMain _dll;
         private static bool _initialized;
+        private static string _rootPath;
+        private static string _dllVersion;
 
         public static void Init(string rootPath)
         {
@@ -64,6 +67,7 @@ namespace blaubergselector_wrapper_coils.Services
                 if (initRes != 0 && initRes != -1)
                     throw new Exception($"Init failed with code {initRes}");
 
+                _rootPath = rootPath;
                 _initialized = true;
             }
         }
@@ -78,6 +82,97 @@ namespace blaubergselector_wrapper_coils.Services
                 _dll.DllRelease();
                 _initialized = false;
                 _dll = null;
+            }
+        }
+
+        // Version of the Unilab calculation library that served the request. Resolved once
+        // from the loaded Unilab.C8DllNet.Public assembly: the file version (what Unilab
+        // actually ships/increments) with the assembly version as a fallback.
+        public static string DllVersion
+        {
+            get { return _dllVersion ?? (_dllVersion = ResolveDllVersion()); }
+        }
+
+        private static string ResolveDllVersion()
+        {
+            var assembly = typeof(DllMain).Assembly;
+            string version = assembly.GetName().Version?.ToString();
+
+            try
+            {
+                string location = assembly.Location;
+                if (!string.IsNullOrEmpty(location) && File.Exists(location))
+                {
+                    string fileVersion = FileVersionInfo.GetVersionInfo(location).FileVersion;
+                    if (!string.IsNullOrWhiteSpace(fileVersion))
+                        version = fileVersion.Trim();
+                }
+            }
+            catch
+            {
+                // Fall back to the assembly version.
+            }
+
+            return version;
+        }
+
+        // Detailed version info for diagnostics: the managed wrapper plus every Unilab
+        // native/engine DLL sitting in the activated root directory.
+        public static object DllVersionInfo()
+        {
+            var assembly = typeof(DllMain).Assembly;
+            string location = assembly.Location;
+
+            string fileVersion = null;
+            string productVersion = null;
+            try
+            {
+                if (!string.IsNullOrEmpty(location) && File.Exists(location))
+                {
+                    var info = FileVersionInfo.GetVersionInfo(location);
+                    fileVersion = info.FileVersion?.Trim();
+                    productVersion = info.ProductVersion?.Trim();
+                }
+            }
+            catch
+            {
+                // Leave the file/product versions null.
+            }
+
+            return new
+            {
+                version = DllVersion,
+                assemblyName = assembly.GetName().Name,
+                assemblyVersion = assembly.GetName().Version?.ToString(),
+                fileVersion,
+                productVersion,
+                location,
+                rootPath = _rootPath,
+                libraries = LibraryVersions()
+            };
+        }
+
+        private static object[] LibraryVersions()
+        {
+            if (string.IsNullOrEmpty(_rootPath) || !Directory.Exists(_rootPath))
+                return Array.Empty<object>();
+
+            try
+            {
+                return Directory
+                    .GetFiles(_rootPath, "Unilab*.dll")
+                    .Select(path =>
+                    {
+                        string version = null;
+                        try { version = FileVersionInfo.GetVersionInfo(path).FileVersion?.Trim(); }
+                        catch { /* unreadable */ }
+                        return (object)new { name = Path.GetFileName(path), fileVersion = version };
+                    })
+                    .ToArray();
+            }
+            catch
+            {
+                return Array.Empty<object>();
             }
         }
 
@@ -213,6 +308,35 @@ namespace blaubergselector_wrapper_coils.Services
         }
 
         private static List<string> _manifolds;
+
+        // Canonicalizes a manifold description against the DLL's manifolds list. A bad
+        // manifold string makes the DLL either return an empty output (silent failure)
+        // or throw a NullReferenceException internally, so we must resolve it up front.
+        // The special values "" (no manifold) and "A"/"a" (automatic) pass through.
+        // Otherwise we match against the DB entries, accepting both the full canonical
+        // form ("28x1 [1 1/8\"]") and the short prefix before " [" ("28x1"), and return
+        // the canonical form. Non-empty input with no match returns null.
+        public static string NormalizeManifold(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "";
+
+            string trimmed = value.Trim();
+            if (string.Equals(trimmed, "A", StringComparison.OrdinalIgnoreCase))
+                return "A";
+
+            foreach (string manifold in ManifoldsList())
+            {
+                if (string.Equals(manifold, trimmed, StringComparison.OrdinalIgnoreCase))
+                    return manifold;
+
+                int bracket = manifold.IndexOf('[');
+                string prefix = (bracket >= 0 ? manifold.Substring(0, bracket) : manifold).Trim();
+                if (string.Equals(prefix, trimmed, StringComparison.OrdinalIgnoreCase))
+                    return manifold;
+            }
+            return null;
+        }
 
         // Single shared list: the DLL does not distinguish tube vs fin materials.
         public static List<string> MaterialsList()

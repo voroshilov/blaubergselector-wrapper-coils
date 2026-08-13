@@ -25,6 +25,10 @@ namespace blaubergselector_wrapper_coils.Controllers
             if (materialError != null)
                 return MaterialError(materialError);
 
+            string manifoldError = NormalizeManifolds(request);
+            if (manifoldError != null)
+                return ManifoldError(manifoldError);
+
             string[] inputArray = request.ToInputArray();
             var (returnCode, output, warnings) = CoilsEngine.CalculateFromArray(inputArray);
 
@@ -97,6 +101,11 @@ namespace blaubergselector_wrapper_coils.Controllers
                 ?? NormalizeMaterials(request.ExhaustCoil, "exhaust_coil");
             if (materialError != null)
                 return MaterialError(materialError);
+
+            string manifoldError = NormalizeManifolds(request.SupplyCoil, "supply_coil")
+                ?? NormalizeManifolds(request.ExhaustCoil, "exhaust_coil");
+            if (manifoldError != null)
+                return ManifoldError(manifoldError);
 
             string[] inputArray = request.ToInputArray();
             var (returnCode, output, warnings) = CoilsEngine.HeatRecoveryCalculateFromArray(inputArray);
@@ -252,6 +261,59 @@ namespace blaubergselector_wrapper_coils.Controllers
                 new { error = message, availableMaterials = CoilsEngine.MaterialsList() });
         }
 
+        // Canonicalizes inlet/outlet manifolds against the DLL list and rejects illegal
+        // combinations. The DLL only accepts both-empty, both-"A", or both-specific; a
+        // mix (e.g. "121x2.3" + "A") silently returns no output, and an unknown manifold
+        // string crashes the DLL with a NullReferenceException. Returns an error message,
+        // otherwise null (and rewrites the request to the canonical manifold strings).
+        private static string NormalizeManifolds(CalculateRequest request)
+        {
+            string inlet = CoilsEngine.NormalizeManifold(request.InletManifold);
+            if (inlet == null)
+                return "Unknown inlet_manifold '" + request.InletManifold + "'";
+
+            string outlet = CoilsEngine.NormalizeManifold(request.OutletManifold);
+            if (outlet == null)
+                return "Unknown outlet_manifold '" + request.OutletManifold + "'";
+
+            // Classify each side: 0 = none (""), 1 = automatic ("A"), 2 = specific.
+            int InletKind(string v) => v == "" ? 0 : (v == "A" ? 1 : 2);
+            if (InletKind(inlet) != InletKind(outlet))
+                return "inlet_manifold and outlet_manifold must be of the same kind: " +
+                       "both empty (no manifolds), both 'A' (automatic), or both a specific manifold";
+
+            request.InletManifold = inlet;
+            request.OutletManifold = outlet;
+            return null;
+        }
+
+        private static string NormalizeManifolds(HeatRecoveryCoilInput coil, string name)
+        {
+            string inlet = CoilsEngine.NormalizeManifold(coil.InletManifold);
+            if (inlet == null)
+                return "Unknown " + name + ".inlet_manifold '" + coil.InletManifold + "'";
+
+            string outlet = CoilsEngine.NormalizeManifold(coil.OutletManifold);
+            if (outlet == null)
+                return "Unknown " + name + ".outlet_manifold '" + coil.OutletManifold + "'";
+
+            int Kind(string v) => v == "" ? 0 : (v == "A" ? 1 : 2);
+            if (Kind(inlet) != Kind(outlet))
+                return name + ".inlet_manifold and " + name + ".outlet_manifold must be of the same kind: " +
+                       "both empty (no manifolds), both 'A' (automatic), or both a specific manifold";
+
+            coil.InletManifold = inlet;
+            coil.OutletManifold = outlet;
+            return null;
+        }
+
+        private IHttpActionResult ManifoldError(string message)
+        {
+            return Content(
+                (System.Net.HttpStatusCode)422,
+                new { error = message, availableManifolds = CoilsEngine.ManifoldsList() });
+        }
+
         private static bool IsEmptyOutput(string[] output)
         {
             if (output == null || output.Length == 0)
@@ -262,6 +324,16 @@ namespace blaubergselector_wrapper_coils.Controllers
                     return false;
             }
             return true;
+        }
+
+        // GET api/coils/version
+        // Version of the Unilab calculation library currently loaded, with details
+        // (assembly/file/product version, location, engine DLLs in the root folder).
+        [HttpGet]
+        [Route("version")]
+        public IHttpActionResult Version()
+        {
+            return Ok(CoilsEngine.DllVersionInfo());
         }
 
         // GET api/coils/inspect
