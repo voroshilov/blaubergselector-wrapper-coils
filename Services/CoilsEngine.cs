@@ -97,18 +97,40 @@ namespace blaubergselector_wrapper_coils.Services
         // under the same root.
         public static object DllVersionInfo()
         {
-            string location = typeof(DllMain).Assembly.Location;
-
             return new
             {
                 serial = Serial(),
                 rootPath = _rootPath,
-                // The loaded wrapper is usually the copy in the app's bin folder, NOT the
-                // file under rootPath. If their fingerprints differ, the deployed wrapper
-                // is out of sync with the installed engine.
-                loadedAssembly = FileFingerprint(location, location),
+                // What is ACTUALLY loaded into the process. The CLR resolves managed
+                // dependencies from the application's own folder, not from rootPath, so
+                // these are normally the Copy Local copies in bin — updating the installed
+                // engine under rootPath does NOT affect them until the project is rebuilt.
+                // Compare these hashes against the matching entries in `files` to see
+                // whether the running engine is the installed one.
+                loadedAssemblies = LoadedUnilabAssemblies(),
                 files = RootFiles()
             };
+        }
+
+        private static object[] LoadedUnilabAssemblies()
+        {
+            try
+            {
+                return AppDomain.CurrentDomain
+                    .GetAssemblies()
+                    .Where(a => (a.GetName().Name ?? "").StartsWith("Unilab", StringComparison.OrdinalIgnoreCase))
+                    .Select(a => a.Location)
+                    .Where(location => !string.IsNullOrEmpty(location))
+                    .OrderBy(location => location, StringComparer.OrdinalIgnoreCase)
+                    // Full path, not a name relative to rootPath: where the file was loaded
+                    // from is exactly the point here.
+                    .Select(location => FileFingerprint(location, null))
+                    .ToArray();
+            }
+            catch
+            {
+                return Array.Empty<object>();
+            }
         }
 
         private static string Serial()
