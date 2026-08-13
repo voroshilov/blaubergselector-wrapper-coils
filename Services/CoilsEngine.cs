@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -14,7 +13,6 @@ namespace blaubergselector_wrapper_coils.Services
         private static DllMain _dll;
         private static bool _initialized;
         private static string _rootPath;
-        private static string _dllVersion;
 
         public static void Init(string rootPath)
         {
@@ -85,94 +83,145 @@ namespace blaubergselector_wrapper_coils.Services
             }
         }
 
-        // Version of the Unilab calculation library that served the request. Resolved once
-        // from the loaded Unilab.C8DllNet.Public assembly: the file version (what Unilab
-        // actually ships/increments) with the assembly version as a fallback.
-        public static string DllVersion
-        {
-            get { return _dllVersion ?? (_dllVersion = ResolveDllVersion()); }
-        }
-
-        private static string ResolveDllVersion()
-        {
-            var assembly = typeof(DllMain).Assembly;
-            string version = assembly.GetName().Version?.ToString();
-
-            try
-            {
-                string location = assembly.Location;
-                if (!string.IsNullOrEmpty(location) && File.Exists(location))
-                {
-                    string fileVersion = FileVersionInfo.GetVersionInfo(location).FileVersion;
-                    if (!string.IsNullOrWhiteSpace(fileVersion))
-                        version = fileVersion.Trim();
-                }
-            }
-            catch
-            {
-                // Fall back to the assembly version.
-            }
-
-            return version;
-        }
-
-        // Detailed version info for diagnostics: the managed wrapper plus every Unilab
-        // native/engine DLL sitting in the activated root directory.
+        // Identity of the calculation engine, for diagnostics.
+        //
+        // Unilab stamps every assembly 1.0.0.0 (the compiler default — they never set
+        // AssemblyVersion) and the DLL exposes no version API at all, so version numbers
+        // are reported nowhere here: they carry no information. What actually identifies
+        // a build is the fingerprint (size + last write time + SHA-256) of the engine
+        // files, plus the license serial of the installation. Comparing those between
+        // two hosts is the only reliable way to tell whether they calculate identically.
+        //
+        // The set covers the whole activated directory, not just the DLLs: results depend
+        // just as much on the geometry/material database Init() is pointed at, which lives
+        // under the same root.
         public static object DllVersionInfo()
         {
-            var assembly = typeof(DllMain).Assembly;
-            string location = assembly.Location;
-
-            string fileVersion = null;
-            string productVersion = null;
-            try
-            {
-                if (!string.IsNullOrEmpty(location) && File.Exists(location))
-                {
-                    var info = FileVersionInfo.GetVersionInfo(location);
-                    fileVersion = info.FileVersion?.Trim();
-                    productVersion = info.ProductVersion?.Trim();
-                }
-            }
-            catch
-            {
-                // Leave the file/product versions null.
-            }
+            string location = typeof(DllMain).Assembly.Location;
 
             return new
             {
-                version = DllVersion,
-                assemblyName = assembly.GetName().Name,
-                assemblyVersion = assembly.GetName().Version?.ToString(),
-                fileVersion,
-                productVersion,
-                location,
+                serial = Serial(),
                 rootPath = _rootPath,
-                libraries = LibraryVersions()
+                // The loaded wrapper is usually the copy in the app's bin folder, NOT the
+                // file under rootPath. If their fingerprints differ, the deployed wrapper
+                // is out of sync with the installed engine.
+                loadedAssembly = FileFingerprint(location, location),
+                files = RootFiles()
             };
         }
 
-        private static object[] LibraryVersions()
+        private static string Serial()
+        {
+            if (!_initialized)
+                return null;
+
+            try { return _dll.GetSerial(); }
+            catch (Exception ex) { return "<error: " + ex.Message + ">"; }
+        }
+
+        // Fingerprints every file under the activated root, recursively. Capped so a
+        // pathological directory cannot turn this endpoint into a full-disk hash.
+        private const int MaxFingerprintedFiles = 500;
+
+        private static object RootFiles()
         {
             if (string.IsNullOrEmpty(_rootPath) || !Directory.Exists(_rootPath))
-                return Array.Empty<object>();
+                return new { truncated = false, items = Array.Empty<object>() };
 
             try
             {
-                return Directory
-                    .GetFiles(_rootPath, "Unilab*.dll")
-                    .Select(path =>
-                    {
-                        string version = null;
-                        try { version = FileVersionInfo.GetVersionInfo(path).FileVersion?.Trim(); }
-                        catch { /* unreadable */ }
-                        return (object)new { name = Path.GetFileName(path), fileVersion = version };
-                    })
+                string[] paths = Directory.GetFiles(_rootPath, "*", SearchOption.AllDirectories);
+                Array.Sort(paths, StringComparer.OrdinalIgnoreCase);
+
+                bool truncated = paths.Length > MaxFingerprintedFiles;
+                var items = paths
+                    .Take(MaxFingerprintedFiles)
+                    .Select(path => FileFingerprint(path, _rootPath))
                     .ToArray();
+
+                return new { truncated, items };
+            }
+            catch (Exception ex)
+            {
+                return new { error = ex.Message, truncated = false, items = Array.Empty<object>() };
+            }
+        }
+
+        // Identity of a single file, named relative to basePath so nested database files
+        // stay distinguishable.
+        private static object FileFingerprint(string path, string basePath)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                return null;
+
+            long size = 0;
+            string lastWriteUtc = null;
+            try
+            {
+                var info = new FileInfo(path);
+                size = info.Length;
+                lastWriteUtc = info.LastWriteTimeUtc.ToString("o");
+            }
+            catch { /* unreadable */ }
+
+            string name = path;
+            if (!string.IsNullOrEmpty(basePath) && path.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+                name = path.Substring(basePath.Length).TrimStart(Path.DirectorySeparatorChar);
+            if (string.IsNullOrEmpty(name))
+                name = Path.GetFileName(path);
+
+            return new
+            {
+                name,
+                size,
+                lastWriteUtc,
+                sha256 = Sha256(path, size, lastWriteUtc)
+            };
+        }
+
+        // Short SHA-256 (first 16 hex chars) — enough to tell builds apart, short enough
+        // to eyeball and paste into a bug report. Cached per (path, size, last write) so
+        // repeat calls don't re-hash a multi-hundred-megabyte database every time.
+        private static readonly Dictionary<string, string> _hashCache = new Dictionary<string, string>();
+
+        private static string Sha256(string path, long size, string lastWriteUtc)
+        {
+            string key = path + "|" + size + "|" + lastWriteUtc;
+
+            lock (_hashCache)
+            {
+                string cached;
+                if (_hashCache.TryGetValue(key, out cached))
+                    return cached;
+            }
+
+            string hash = ComputeSha256(path);
+
+            lock (_hashCache)
+            {
+                _hashCache[key] = hash;
+            }
+            return hash;
+        }
+
+        private static string ComputeSha256(string path)
+        {
+            try
+            {
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                using (var stream = File.OpenRead(path))
+                {
+                    byte[] hash = sha.ComputeHash(stream);
+                    var sb = new System.Text.StringBuilder(16);
+                    for (int i = 0; i < 8; i++)
+                        sb.Append(hash[i].ToString("x2"));
+                    return sb.ToString();
+                }
             }
             catch
             {
-                return Array.Empty<object>();
+                return null;
             }
         }
 
@@ -265,12 +314,11 @@ namespace blaubergselector_wrapper_coils.Services
                 .OrderBy(m => m.name)
                 .ToArray();
 
-            var assemblyVersion = type.Assembly.GetName().Version?.ToString();
+            // No assembly version here: Unilab ships everything as 1.0.0.0. See DllVersionInfo().
             var assemblyLocation = type.Assembly.Location;
 
             return new
             {
-                assemblyVersion,
                 assemblyLocation,
                 properties,
                 fields,

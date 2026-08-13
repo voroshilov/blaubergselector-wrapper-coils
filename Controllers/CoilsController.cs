@@ -327,8 +327,10 @@ namespace blaubergselector_wrapper_coils.Controllers
         }
 
         // GET api/coils/version
-        // Version of the Unilab calculation library currently loaded, with details
-        // (assembly/file/product version, location, engine DLLs in the root folder).
+        // Identity of the calculation engine: license serial plus a fingerprint (size,
+        // last write time, SHA-256) of every file under the activated root — DLLs and
+        // database alike. Unilab stamps no usable version numbers, so fingerprints are
+        // what tells two installations apart.
         [HttpGet]
         [Route("version")]
         public IHttpActionResult Version()
