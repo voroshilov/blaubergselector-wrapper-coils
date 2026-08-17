@@ -141,7 +141,7 @@ namespace blaubergselector_wrapper_coils.Models
             arr[31] = FluidParam2 ?? "";                // pos 31
             arr[32] = FluidParam3 ?? "";                // pos 32
             arr[33] = FluidParam4 ?? "E";               // pos 33
-            arr[35] = 0;                                // pos 35
+            arr[35] = "0";                                // pos 35
             arr[37] = ManifoldMaterialId ?? "-1";       // pos 37
             arr[38] = ManifoldCouples ?? "";             // pos 38
 
