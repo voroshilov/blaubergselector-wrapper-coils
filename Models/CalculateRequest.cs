@@ -121,7 +121,7 @@ namespace blaubergselector_wrapper_coils.Models
             arr[9]  = FinPitch ?? "";                    // pos 9
             arr[10] = NumberOfRows ?? "";               // pos 10
             arr[11] = NumberOfCircuits ?? "";            // pos 11
-            arr[12] = NumberOfSkippedTubes ?? "0";      // pos 12
+            arr[12] = "0";                               // pos 12
             arr[13] = InletManifold ?? "";               // pos 13
             arr[14] = OutletManifold ?? "";              // pos 14
             arr[15] = TotalCapacity ?? "";               // pos 15
